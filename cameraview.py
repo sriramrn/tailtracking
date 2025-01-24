@@ -1,0 +1,268 @@
+from pyqtgraph.Qt import QtCore, QtGui
+import numpy as np
+from skimage.transform import rescale
+from skimage.util import img_as_ubyte
+import pyqtgraph as pg
+from pyqtgraph.ptime import time
+from pyqtgraph.widgets.RawImageWidget import RawImageWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
+
+
+class LiveViewRaw():
+
+    def __init__(self, framesize, scaling_factor=1.):
+
+        self.scaling_factor = scaling_factor
+
+        self.framesize = framesize
+        self.imagesize = (np.array(framesize)*self.scaling_factor).astype(int)
+
+        app = pg.mkQApp()
+        self.win = pg.Qt.QtWidgets.QMainWindow()
+        self.widget = RawImageWidget()
+        self.win.setCentralWidget(self.widget)
+        self.win.show()
+
+        if self.imagesize is not None:
+            self.win.resize(self.imagesize[1], self.imagesize[0])
+
+    def downscale(self, frame):
+        downscaled_frame = rescale(frame, self.scaling_factor, anti_aliasing=False)
+        downscaled_frame = img_as_ubyte(downscaled_frame)
+        return downscaled_frame
+
+    def update_frame(self, frame):
+
+        if self.scaling_factor != 1:
+            frame = self.downscale(frame)
+
+        self.widget.setImage(frame)
+        pg.QtGui.QApplication.processEvents()
+
+
+class LiveView():
+        
+    def __init__(self, framesize, scaling_factor=1.):
+
+        self.scaling_factor = scaling_factor
+
+        self.framesize = framesize
+        self.imagesize = (np.array(framesize)*self.scaling_factor).astype(int)
+
+        ## Create window with GraphicsView widget
+        self.win = pg.GraphicsLayoutWidget()
+        self.win.show()  ## show widget alone in its own window
+        self.win.setWindowTitle('video feed')
+        self.view = self.win.addViewBox()
+    
+        ## Create image item
+        self.img = pg.ImageItem(border='w')
+        self.view.addItem(self.img)
+    
+        # ## lock the aspect ratio so pixels are always square
+        self.view.setAspectLocked(True)
+
+        ## Set initial view bounds
+        if self.imagesize is not None:
+            self.view.resize(self.imagesize[1], self.imagesize[0])
+            self.view.setRange(QtCore.QRectF(0, 0, self.imagesize[1], self.imagesize[0]))
+
+    def downscale(self, frame):
+        downscaled_frame = rescale(frame, self.scaling_factor, anti_aliasing=False)
+        downscaled_frame = img_as_ubyte(downscaled_frame)
+        return downscaled_frame
+
+    def update_frame(self, frame):
+
+        if self.scaling_factor != 1:
+            frame = self.downscale(frame)
+
+        self.img.setImage(frame, autoRange=False, autoLevels=False)
+        pg.QtGui.QApplication.processEvents()
+
+
+class TailTrackView():
+        
+    def __init__(self, framesize, windowsize=[800,400], gainv=1., gainh=1., start_point_offset=[0,0], plotfps=True):
+
+        self.prevframetime = time()
+        self.frametime = time()
+
+        self.end = False
+        self.update_start_point = False
+
+        self.gainv = gainv
+        self.gainh = gainh
+        self.start_point_offset = start_point_offset
+
+        self.velocity = [0]
+        self.heading = [0]
+        self.fps = 0
+        self.fpsbuffer = [self.fps]
+        self.plotfps = plotfps
+
+        self.framesize = framesize
+
+        self.app = pg.mkQApp
+        ## Create window with GraphicsView widget
+        self.win = pg.GraphicsLayoutWidget(border='#646464')
+        icon = QIcon("icon.png")
+        self.win.setWindowIcon(icon)
+        self.win.setFixedSize(*windowsize)
+        # self.win.resize(*windowsize)
+        self.win.show()  ## show widget alone in its own window
+        self.win.setWindowTitle('Tail Tracker')
+
+        ## Create image item in a view box
+        self.view = self.win.addViewBox(lockAspect=True, row=3, col=0, rowspan=3, colspan=2)
+        self.img = pg.ImageItem(border='#646464')
+        self.view.addItem(self.img)
+        
+        font = QtGui.QFont("Arial", pointSize=10)
+        self.fpstext = pg.TextItem('processed at %i fps' % self.fps)
+        self.fpstext.setFont(font)
+        self.view.addItem(self.fpstext)
+
+        self.view.setAspectLocked(True)
+        
+        ## Add plots
+        nplots = 2
+        plottitles = ['velocity, gain: %0.1f' % self.gainv, 'heading, gain: %0.1f' % self.gainh]
+        plotrow = [3,4]
+        plotcol = [3,3]
+        if self.plotfps:
+            nplots += 1
+            plottitles.append('output fps')
+            plotrow.append(5)
+            plotcol.append(3)
+        
+        self.plots = [self.win.addPlot(title=x, row=y, col=z, rowspan=1, colspan=2) for x,y,z in zip(plottitles, plotrow, plotcol)]
+        
+        [x.setContentsMargins(10,0,0,0) for x in self.plots]
+        [x.showGrid(x=True,y=True,alpha=1.) for x in self.plots]
+        self.plotdata = [x.plot(pen='#ffdb00') for x in self.plots]
+
+        endbutton = QtGui.QPushButton('end')
+        self.roiupdatebutton = QtGui.QPushButton('move roi') 
+        up = QtGui.QPushButton('up')
+        down = QtGui.QPushButton('down')
+        left = QtGui.QPushButton('left')
+        right = QtGui.QPushButton('right')
+
+        buttons = [endbutton, self.roiupdatebutton, up, down, left, right]
+        button_proxies = [QtGui.QGraphicsProxyWidget() for x in range(6)]
+        
+        [x.setWidget(y) for x,y in zip(button_proxies,buttons)]
+
+        endbutton.clicked.connect(self.end_button_clicked)
+        self.roiupdatebutton.clicked.connect(self.roi_mode)
+
+        up.pressed.connect(lambda: self.move_roi(b='u'))
+        down.pressed.connect(lambda: self.move_roi(b='d'))
+        left.pressed.connect(lambda: self.move_roi(b='l'))
+        right.pressed.connect(lambda: self.move_roi(b='r'))
+
+        [x.released.connect(self.stop_moving_roi) for x in [up, down, left, right]]
+        [x.setAutoRepeat(True) for x in [up, down, left, right]]
+        [x.setAutoRepeatInterval(50) for x in [up, down, left, right]]
+
+        p3 = self.win.addLayout(row=0, col=0, rowspan=3, colspan=2)
+        p3.setContentsMargins(20,20,20,20)
+
+        [p3.addItem(x,row=y,col=z) for x,y,z in zip(button_proxies,[0,0,1,1,2,2],[0,1,0,1,0,1])]
+
+        # Create sliders
+        slider_box = self.win.addLayout(row=0, col=3, rowspan=3, colspan=2)
+        slider_box.setContentsMargins(40,21,10,21)
+
+        nsliders = 4
+        self.sliders = [pg.Qt.QtWidgets.QSlider(Qt.Horizontal) for x in range(nsliders)]
+        [x.setRange(*y) for x,y in zip (self.sliders, [[0,100], [0,100], [0,framesize[0]], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)]])]
+        [x.setValue(y) for x,y in zip(self.sliders,[int(self.gainv*10),int(self.gainh*10), self.start_point_offset[0], self.start_point_offset[1]])]
+        slider_labels = [pg.LabelItem(x) for x in ['gv', 'gh', 'x_tail', 'y_tail']]
+        [x.setParentItem(slider_box.graphicsItem()) for x in slider_labels]
+        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.13, .68, nsliders))]
+
+
+        styles = "QSlider::groove:horizontal { background: #3b3b3b; position: absolute; left: 0px; right: 0px; border-radius:0px}"
+        styles += "QSlider::handle:horizontal { height: 5px; background: #ffa904; margin: 0 -8px; border-style:solid; border-color: grey;border-width:1px;border-radius:3px}"
+        # styles += "QSlider::sub-page:horizontal { background: black; border-style:solid; border-color: grey;border-width:1px;border-radius:0px}"
+        styles += "QSlider::add-page:horizontal { background: black; border-style:solid; border-color: grey;border-width:1px;border-radius:0px}"        
+        [x.setStyleSheet(styles) for x in self.sliders]
+
+        # Add slider to the graphics layout using QGraphicsProxyWidget
+        slider_proxies = [pg.QtGui.QGraphicsProxyWidget() for x in range(nsliders)]
+        [x.setWidget(y) for x,y in zip(slider_proxies,self.sliders)]
+        [slider_box.addItem(x, row=y, col=4, rowspan=1, colspan=1) for x,y in zip(slider_proxies, [0,1,2,3])]
+
+        # Connect slider value change to a function
+        [x.valueChanged.connect(y) for x,y in zip(self.sliders, [self.slider1_changed, self.slider2_changed, self.offset_changed, self.offset_changed])]
+
+        self.toggle_move = False
+        self.move_up = False
+        self.move_down = False
+        self.move_left = False
+        self.move_right = False
+
+    def slider1_changed(self):
+        self.gainv = self.sliders[0].value()/10.
+        self.plots[0].setTitle('velocity, gain: %0.1f' % self.gainv)
+
+    def slider2_changed(self):
+        self.gainh = self.sliders[1].value()/10.
+        self.plots[1].setTitle('velocity, gain: %0.1f' % self.gainh)
+
+    def offset_changed(self):
+        self.start_point_offset = [int(self.sliders[2].value()), int(self.sliders[3].value())]
+        self.update_start_point = True
+
+    def end_button_clicked(self):
+        self.end = True
+
+    def roi_mode(self):
+        self.toggle_move = not(self.toggle_move)
+        if self.toggle_move:
+            self.roiupdatebutton.setStyleSheet("background-color : #90EE90")
+        else:
+            self.roiupdatebutton.setStyleSheet("background-color : #f0f0f0")
+
+    def move_roi(self, b):
+        if b=='u':
+            self.move_up = True
+        elif b=='d':
+            self.move_down = True
+        elif b=='l':
+            self.move_left = True
+        elif b=='r':
+            self.move_right = True
+
+    def stop_moving_roi(self):
+        self.move_up = False
+        self.move_down = False
+        self.move_left = False
+        self.move_right = False
+
+    def update_frame(self, frame):
+
+        self.img.setImage(frame, autoRange=False, autoLevels=False)
+
+        self.frametime = time()
+        self.fps = 1./(self.frametime-self.prevframetime)
+
+        self.prevframetime = time()
+
+        self.plotdata[0].setData(self.velocity)
+        self.plotdata[1].setData(self.heading)
+        if self.plotfps:
+            self.plotdata[2].setData(self.fpsbuffer)
+            self.plots[2].setTitle('output fps')
+            self.fpstext.setText('processed at %0.1f +- %0.1f fps' % (np.mean(self.fpsbuffer[-100::]), np.std(self.fpsbuffer[-100::])))
+
+        else:
+            if len(self.fpsbuffer) > 1:
+                self.fpstext.setText('processed at %0.1f +- %0.1f fps' % (np.mean(self.fpsbuffer[-100::]), np.std(self.fpsbuffer[-100::])))
+            else:
+                self.fpstext.setText('processed at %0.1f fps' % self.fps)
+
+        pg.QtGui.QApplication.processEvents()
