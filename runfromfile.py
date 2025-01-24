@@ -1,0 +1,228 @@
+from pathlib import Path
+import sys
+import cv2
+from cameraview import TailTrackView
+from videowriter import VideoWriter
+from tailtracker import TailTracker
+from ringbuffer import FifoBuffer
+import copy
+import socket
+import struct
+import time
+import csv
+
+"""
+TODO
+1) swap width and height based on taildirection value ----- DONE
+2) save tail points, cumulative tail bend angle, gains and framecount to csv file ----- DONE
+3) scale marker sizes for overlay based on image dimensions ----- DONE
+"""
+
+"""
+INPUT PARAMETERS
+"""
+
+videosource = 'C:/Users/narasrir/code/tailtracking/sample_videos/test_vid_large.mp4' # path to video file
+savepath = 'C:/Users/narasrir/code/tailtracking/output_log/' # path to save video and log file
+prefix = 'date_fishX_sessionY' # prefix for video and log file names (replace 'date' with date, X and Y with fish and session numbers)
+savevideo = False # grayscale video without tracking overlay is saved
+logdata = False
+videofile = savepath + prefix + '_vid.mp4' 
+logfile =  savepath + prefix + '_tracking.csv'
+
+taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
+gainv = 1.                      # forward gain to initialize sliders
+gainh = 1.                      # turning gain to initialize sliders
+tail_tracking_nsteps = 5        # number of points to track, excluding the stationary start point at the base of the tail
+tail_tracking_step_size = 50    # step size between successive tail tracking points
+theta_range = [-1.,1.]          # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
+dtheta = 0.12                   # angular step size to extract a radial intensity profile
+start_point_offset = [0,-12]    # offset to position the start point format: [x,y], x can only be positive, y can have negative or positive values relative to 0.5x frame height
+blur = True                     # spatial filter to blur video frames before tail tracking
+blur_kernel = [3,3]             # kernel size to apply blur (stackBlur function from opencv, similar to a Gaussian blur, speed independent of kernel size)
+show_arc = True                 # visualize arcs used to find tail
+show_midline = True             # show an imaginary line down the middle of the frame to aid with tail positioning
+
+buffer_size = 10.               # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
+lowpass_tau = 100               # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming 
+estimator_history = 0.2         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
+estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
+
+broadcast_udp = True            # broadcast UDP message to Panda3D. Same address and port must be used by the listener            
+udp_ip = '127.0.0.1'
+udp_port = 5005
+
+gui_window_size = [800,500]     # size of the GUI window
+plot_fps = False                # plotting fps reduces performance significantly. use only for diagnostics
+
+# Use to slow down video processing to simulate camera capture rates
+clampfps = False    # clamp framerate to simulate a real recording.  
+maxfps = 100        # fps to set when clampfps is true, the displayed fps value will not be accurate but will be close to this value, irrespective.
+
+"""
+INPUT PARAMETERS END HERE
+"""
+
+if savevideo or logdata:
+    while True:
+        if Path(logfile).is_file() or Path(videofile).is_file():
+            user_input = input("One or more files exist in the specified path. Enter y/n to overwrite data or quit: ")
+        else:
+            break
+        
+        if user_input.lower() == 'y':
+            print("Input received, overwriting data")
+            break
+        elif user_input.lower() == 'n':
+            print("Input received, aborting capture")
+            sys.exit()
+        else:
+            print("Invalid input, enter y to overwrite or n to abort")
+
+
+cap = cv2.VideoCapture(videosource)
+framerate = cap.get(cv2.CAP_PROP_FPS)
+width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+def get_start_point(framesize, offset):
+    start_point = [offset[0], int(framesize[1]/2 + offset[1])]
+    return start_point
+
+if taildirection == 3 or taildirection == 4:
+    framesize = [height, width]
+elif taildirection == 1 or taildirection == 2:
+    framesize = [width, height]
+
+start_point = get_start_point(framesize, start_point_offset)
+
+markersize = int(min(width,height)//100)+1
+
+buffer_frames = int(buffer_size*framerate)
+lptau_frames = int(lowpass_tau*framerate/1000.0)
+estimator_frames = int(estimator_history*framerate)
+
+cumulative_tail_angle_buffer = FifoBuffer(buffer_frames)
+velocity_buffer = FifoBuffer(buffer_frames, lptau_frames)
+theta_buffer = FifoBuffer(buffer_frames, lptau_frames)
+fpsbuffer = FifoBuffer(buffer_frames)
+
+if savevideo:
+    writer = VideoWriter(framesize=framesize, framerate=framerate, saveas=videofile)
+
+if logdata:
+    tail_points_header = ['pt_{}'.format(x) for x in range(tail_tracking_nsteps+1)]
+    datafile = open(logfile, 'w', encoding='utf-8',  newline='')
+    logger = csv.writer(datafile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'cumulative tail angle', *tail_points_header])    
+
+if broadcast_udp:
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
+
+liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, gainv=gainv, gainh=gainh, plotfps=plot_fps, start_point_offset=start_point_offset)
+
+tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size,
+                      theta_range=theta_range, dtheta=dtheta, illumination='darkfield')
+
+framecount = 0
+velocity = 0
+theta = 0
+
+consecutive_skips = 0
+max_consec_skips = 10
+
+clampdt = 1./maxfps
+frametime = time.time()
+prevframetime = time.time()
+
+while True:
+
+    ret, frame = cap.read()
+
+    if ret:
+
+        framecount += 1
+        frametime = time.time()
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        tracker.image = frame
+
+        frame = tracker.fix_tail_direction(taildirection)
+
+        if blur:
+            frame = cv2.stackBlur(frame,ksize=blur_kernel)            
+
+        tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=1, gain_t=3, 
+                                                history=cumulative_tail_angle_buffer.buffer[-estimator_frames::])
+
+        velocity_buffer.update(vel*gainv)
+        theta_buffer.update(th*gainh)
+        cumulative_tail_angle_buffer.update(tracker.cumulative_tail_angle)
+        fpsbuffer.update(liveview.fps)
+    
+        velocity = velocity_buffer.buffer[-1]
+        theta = theta_buffer.buffer[-1]
+
+        if broadcast_udp:
+            message = struct.pack('>ddi', velocity, theta, framecount)
+            udp_socket.sendto(message, (udp_ip, udp_port))
+
+        liveview.velocity = velocity_buffer.buffer
+        liveview.heading = theta_buffer.buffer
+        liveview.fpsbuffer = fpsbuffer.buffer
+
+        imtoshow = copy.deepcopy(frame)
+        imtoshow = cv2.cvtColor(imtoshow, cv2.COLOR_GRAY2BGR)
+
+        if show_midline:
+            cv2.line(imtoshow, [0,tail[0][1]], [int(framesize[0]),tail[0][1]], (64,11,11), markersize)
+
+        if show_arc:
+            for pts in arc:
+                temp = cv2.polylines(imtoshow, pts.reshape(-1,1,2), isClosed=True, color=(0,255,255), thickness=markersize)
+
+        for i in range(len(tail)):
+            cv2.circle(imtoshow, tail[i], markersize, (255,219,0), -1)
+
+        liveview.update_frame(imtoshow.transpose(1,0,2))
+
+        gainv = liveview.gainv
+        gainh = liveview.gainh
+
+        if savevideo:
+            writer.write_frame(frame)
+
+        if logdata:
+            logger.writerow([framecount, velocity, theta, gainv, gainh, tracker.cumulative_tail_angle, *tail])
+
+        if liveview.end:
+            break
+
+        if liveview.update_start_point:
+            start_point = get_start_point(framesize, liveview.start_point_offset)
+            tracker.start_point = start_point
+            liveview.update_start_point = False
+
+        consecutive_skips = 0
+    else:
+        consecutive_skips += 1
+        if consecutive_skips >= max_consec_skips:
+            break
+
+    if clampfps:
+        dt = frametime - prevframetime
+        prevframetime = frametime
+        if dt < clampdt:
+            waitfor = clampdt - dt
+            now = time.time()
+            while True:
+                if time.time() - now >= waitfor:
+                    break
+
+cap.release()
+
+if savevideo:
+    writer.close()
+if logdata:
+    datafile.close()
