@@ -1,2 +1,2 @@
-output_log/*
-!output_log/.gitkeep
+log/*
+!log/.gitkeep

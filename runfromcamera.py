@@ -24,7 +24,7 @@ TODO
 INPUT PARAMETERS
 """
 
-savepath = 'C:/Users/narasrir/code/tailtracking/outout_log/' # path to save video and log file
+savepath = 'C:/Users/narasrir/code/tailtracking/log/' # path to save video and log file
 prefix = 'date_fishX_sessionY' # prefix for video and log file names (replace 'date' with date, X and Y with fish and session numbers)
 savevideo = False # grayscale video without tracking overlay is saved
 logdata = False
