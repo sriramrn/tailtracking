@@ -7,7 +7,10 @@ from pyqtgraph.ptime import time
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-
+import tkinter as tk
+from tkinter import filedialog
+root = tk.Tk()
+root.withdraw()
 
 class LiveViewRaw():
 
@@ -91,6 +94,10 @@ class TailTrackView():
 
         self.end = False
         self.update_start_point = False
+        self.updateconfig = False
+        self.saveconfig = False
+        self.configfile = None
+        self.saveconfigas = None
 
         self.gainv = gainv
         self.gainh = gainh
@@ -149,14 +156,18 @@ class TailTrackView():
         down = QtGui.QPushButton('down')
         left = QtGui.QPushButton('left')
         right = QtGui.QPushButton('right')
+        load = QtGui.QPushButton('load')
+        save = QtGui.QPushButton('save')
 
-        buttons = [endbutton, self.roiupdatebutton, up, down, left, right]
-        button_proxies = [QtGui.QGraphicsProxyWidget() for x in range(6)]
+        buttons = [endbutton, self.roiupdatebutton, load, up, down, save, left, right]
+        button_proxies = [QtGui.QGraphicsProxyWidget() for x in range(8)]
         
         [x.setWidget(y) for x,y in zip(button_proxies,buttons)]
 
         endbutton.clicked.connect(self.end_button_clicked)
         self.roiupdatebutton.clicked.connect(self.roi_mode)
+        load.clicked.connect(self.loadbuttonpressed)
+        save.clicked.connect(self.savebuttonpressed)
 
         up.pressed.connect(lambda: self.move_roi(b='u'))
         down.pressed.connect(lambda: self.move_roi(b='d'))
@@ -170,7 +181,7 @@ class TailTrackView():
         p3 = self.win.addLayout(row=0, col=0, rowspan=3, colspan=2)
         p3.setContentsMargins(20,20,20,20)
 
-        [p3.addItem(x,row=y,col=z) for x,y,z in zip(button_proxies,[0,0,1,1,2,2],[0,1,0,1,0,1])]
+        [p3.addItem(x,row=y,col=z) for x,y,z in zip(button_proxies,[0,0,0,1,1,1,2,2,2,3,3,3],[0,1,2,0,1,2,0,1,2])]
 
         # Create sliders
         slider_box = self.win.addLayout(row=0, col=3, rowspan=3, colspan=2)
@@ -211,12 +222,22 @@ class TailTrackView():
 
     def slider2_changed(self):
         self.gainh = self.sliders[1].value()/10.
-        self.plots[1].setTitle('velocity, gain: %0.1f' % self.gainh)
+        self.plots[1].setTitle('heading, gain: %0.1f' % self.gainh)
 
     def offset_changed(self):
         self.start_point_offset = [int(self.sliders[2].value()), int(self.sliders[3].value())]
         self.update_start_point = True
 
+    def loadbuttonpressed(self):
+        self.configfile = filedialog.askopenfilename(filetypes =[('ini files', '*.ini')])
+        if len(self.configfile) > 0:
+            print("Loaded configuration file: {}".format(self.configfile))
+        self.updateconfig = True
+
+    def savebuttonpressed(self):
+        self.saveconfigas = filedialog.asksaveasfilename(defaultextension='.csv', filetypes =[('csv files', '*.csv')])
+        self.saveconfig = True
+        
     def end_button_clicked(self):
         self.end = True
 
