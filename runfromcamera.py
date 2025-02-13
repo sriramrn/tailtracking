@@ -49,7 +49,7 @@ tail_tracking_nsteps = config.getint('params', 'tail_tracking_nsteps')  # number
 tail_tracking_step_size = config.getint('params', 'tail_tracking_step_size')    # step size between successive tail tracking points
 theta_range = [-config.getfloat('params', 'theta_range'), config.getfloat('params', 'theta_range')] # angular range in radians to search for the tail
 dtheta = config.getfloat('params', 'dtheta')            # angular step size to extract a radial intensity profile
-start_point_offset = [config.getint('params', 'offset_x'), config.getint('params', 'offest_y')] # offset to position the start point format: [x,y]                                                  
+start_point_offset = [config.getint('params', 'offset_x'), config.getint('params', 'offset_y')] # offset to position the start point format: [x,y]                                                  
 blur = config.getboolean('params', 'blur')              # spatial filter to blur video frames before tail tracking
 blur_kernel = [config.getint('params', 'blur_kernel'), config.getint('params', 'blur_kernel')]
 show_arc = config.getboolean('params', 'show_arc')      # visualize arcs used to find tail
@@ -66,6 +66,7 @@ udp_port = config.getint('params','udp_port')
 # GUI
 gui_window_size = [config.getint('params', 'gui_window_w'), config.getint('params', 'gui_window_h')] # size of the GUI window
 plot_fps = config.getboolean('params', 'plot_fps') # plotting fps reduces performance significantly. use only for diagnostics
+
 
 """
 INPUT PARAMETERS END HERE
