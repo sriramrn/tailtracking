@@ -36,14 +36,16 @@ class TailTracker():
         return cv2.warpAffine(self.image, M, (nW, nH))
 
 
-    def fix_tail_direction(self, taildirection):
+    def fix_tail_direction(self, taildirection, offset=0):
         
         if taildirection == 1:
-            self.image = self.rotate_bound(180)
+            self.image = self.rotate_bound(180 + offset)
+        elif taildirection == 2:
+            self.image = self.rotate_bound(offset)
         elif taildirection == 3:
-            self.image = self.rotate_bound(90)
+            self.image = self.rotate_bound(90 + offset)
         elif taildirection == 4:
-            self.image = self.rotate_bound(270)
+            self.image = self.rotate_bound(270 + offset)
                     
         return self.image
 

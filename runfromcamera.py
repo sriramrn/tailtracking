@@ -49,7 +49,8 @@ tail_tracking_nsteps = config.getint('params', 'tail_tracking_nsteps')  # number
 tail_tracking_step_size = config.getint('params', 'tail_tracking_step_size')    # step size between successive tail tracking points
 theta_range = [-config.getfloat('params', 'theta_range'), config.getfloat('params', 'theta_range')] # angular range in radians to search for the tail
 dtheta = config.getfloat('params', 'dtheta')            # angular step size to extract a radial intensity profile
-start_point_offset = [config.getint('params', 'offset_x'), config.getint('params', 'offset_y')] # offset to position the start point format: [x,y]                                                  
+start_point_offset = [config.getint('params', 'offset_x'), config.getint('params', 'offset_y')] # offset to position the start point format: [x,y]
+angle_offset = config.getint('params', 'offset_a')      # rotational offset to make tail horizontal                                                  
 blur = config.getboolean('params', 'blur')              # spatial filter to blur video frames before tail tracking
 blur_kernel = [config.getint('params', 'blur_kernel'), config.getint('params', 'blur_kernel')]
 show_arc = config.getboolean('params', 'show_arc')      # visualize arcs used to find tail
@@ -139,7 +140,8 @@ if logdata:
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
 
-liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, gainv=gainv, gainh=gainh, plotfps=plot_fps, start_point_offset=start_point_offset)
+liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, gainv=gainv, gainh=gainh, plotfps=plot_fps, 
+                         start_point_offset=start_point_offset, angle_offset=angle_offset)
 
 tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size,
                       theta_range=theta_range, dtheta=dtheta, illumination=illumination)
@@ -158,7 +160,7 @@ while True:
 
     tracker.image = frame
 
-    frame = tracker.fix_tail_direction(taildirection)
+    frame = tracker.fix_tail_direction(taildirection, angle_offset)
 
     if blur:
         frame = cv2.stackBlur(frame,ksize=blur_kernel)            
@@ -209,10 +211,11 @@ while True:
     if liveview.end:
         break
 
-    if liveview.update_start_point:
+    if liveview.update_offsets:
         start_point = get_start_point(framesize, liveview.start_point_offset)
         tracker.start_point = start_point
-        liveview.update_start_point = False
+        angle_offset = liveview.angle_offset
+        liveview.update_offsets = False
 
     if liveview.toggle_move:
         if liveview.move_up:
@@ -234,6 +237,7 @@ while True:
         config['params']['gainh'] = str(gainh)
         config['params']['offset_x'] = str(liveview.start_point_offset[0])
         config['params']['offset_y'] = str(liveview.start_point_offset[1])
+        config['params']['offset_a'] = str(angle_offset)
 
         with open(liveview.saveconfigas, 'w') as configfile:
             config.write(configfile)

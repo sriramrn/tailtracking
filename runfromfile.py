@@ -33,6 +33,7 @@ tail_tracking_step_size = 50    # step size between successive tail tracking poi
 theta_range = [-1.,1.]          # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
 dtheta = 0.12                   # angular step size to extract a radial intensity profile
 start_point_offset = [0,-12]    # offset to position the start point format: [x,y], x can only be positive, y can have negative or positive values relative to 0.5x frame height
+angle_offset = 0                # tilt in tail position w.r.t horizontal
 blur = True                     # spatial filter to blur video frames before tail tracking
 blur_kernel = [3,3]             # kernel size to apply blur (stackBlur function from opencv, similar to a Gaussian blur, speed independent of kernel size)
 show_arc = True                 # visualize arcs used to find tail
@@ -109,9 +110,10 @@ if logdata:
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
 
-liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, gainv=gainv, gainh=gainh, plotfps=plot_fps, start_point_offset=start_point_offset)
+liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, gainv=gainv, gainh=gainh, plotfps=plot_fps, 
+                         start_point_offset=start_point_offset, angle_offset=angle_offset)
 
-tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size,
+tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, 
                       theta_range=theta_range, dtheta=dtheta, illumination=illumination)
 
 framecount = 0
@@ -138,7 +140,7 @@ while True:
 
         tracker.image = frame
 
-        frame = tracker.fix_tail_direction(taildirection)
+        frame = tracker.fix_tail_direction(taildirection, angle_offset)
 
         if blur:
             frame = cv2.stackBlur(frame,ksize=blur_kernel)            
@@ -189,10 +191,11 @@ while True:
         if liveview.end:
             break
 
-        if liveview.update_start_point:
+        if liveview.update_offsets:
             start_point = get_start_point(framesize, liveview.start_point_offset)
+            angle_offset = liveview.angle_offset
             tracker.start_point = start_point
-            liveview.update_start_point = False
+            liveview.update_offsets = False
 
         consecutive_skips = 0
     else:

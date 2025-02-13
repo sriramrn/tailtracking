@@ -89,13 +89,13 @@ class LiveView():
 
 class TailTrackView():
         
-    def __init__(self, framesize, windowsize=[800,400], gainv=1., gainh=1., start_point_offset=[0,0], plotfps=True):
+    def __init__(self, framesize, windowsize=[800,400], gainv=1., gainh=1., start_point_offset=[0,0], angle_offset=0, plotfps=True):
 
         self.prevframetime = time()
         self.frametime = time()
 
         self.end = False
-        self.update_start_point = False
+        self.update_offsets = False
         self.updateconfig = False
         self.saveconfig = False
         self.configfile = None
@@ -104,6 +104,7 @@ class TailTrackView():
         self.gainv = gainv
         self.gainh = gainh
         self.start_point_offset = start_point_offset
+        self.angle_offset = angle_offset
 
         self.velocity = [0]
         self.heading = [0]
@@ -185,15 +186,15 @@ class TailTrackView():
 
         # Create sliders
         slider_box = self.win.addLayout(row=0, col=3, rowspan=3, colspan=2)
-        slider_box.setContentsMargins(40,21,10,21)
+        slider_box.setContentsMargins(40,10,10,10)
 
-        nsliders = 4
+        nsliders = 5
         self.sliders = [pg.Qt.QtWidgets.QSlider(Qt.Horizontal) for x in range(nsliders)]
-        [x.setRange(*y) for x,y in zip (self.sliders, [[0,100], [0,100], [0,framesize[0]], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)]])]
-        [x.setValue(y) for x,y in zip(self.sliders,[int(self.gainv*10),int(self.gainh*10), self.start_point_offset[0], self.start_point_offset[1]])]
-        slider_labels = [pg.LabelItem(x) for x in ['gv', 'gh', 'x_tail', 'y_tail']]
+        [x.setRange(*y) for x,y in zip (self.sliders, [[0,100], [0,100], [0,framesize[0]], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]])]
+        [x.setValue(y) for x,y in zip(self.sliders,[int(self.gainv*10),int(self.gainh*10), self.start_point_offset[0], self.start_point_offset[1], self.angle_offset])]
+        slider_labels = [pg.LabelItem(x) for x in ['gv', 'gh', 'x_tail', 'y_tail', 'angle']]
         [x.setParentItem(slider_box.graphicsItem()) for x in slider_labels]
-        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.13, .68, nsliders))]
+        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.05, .75, nsliders))]
 
 
         styles = "QSlider::groove:horizontal { background: #3b3b3b; position: absolute; left: 0px; right: 0px; border-radius:0px}"
@@ -205,10 +206,10 @@ class TailTrackView():
         # Add slider to the graphics layout using QGraphicsProxyWidget
         slider_proxies = [pg.QtGui.QGraphicsProxyWidget() for x in range(nsliders)]
         [x.setWidget(y) for x,y in zip(slider_proxies,self.sliders)]
-        [slider_box.addItem(x, row=y, col=4, rowspan=1, colspan=1) for x,y in zip(slider_proxies, [0,1,2,3])]
+        [slider_box.addItem(x, row=y, col=4, rowspan=1, colspan=1) for x,y in zip(slider_proxies, np.arange(0,nsliders,1))]
 
         # Connect slider value change to a function
-        [x.valueChanged.connect(y) for x,y in zip(self.sliders, [self.slider1_changed, self.slider2_changed, self.offset_changed, self.offset_changed])]
+        [x.valueChanged.connect(y) for x,y in zip(self.sliders, [self.slider1_changed, self.slider2_changed, self.offset_changed, self.offset_changed, self.offset_changed])]
 
         self.toggle_move = False
         self.move_up = False
@@ -226,7 +227,8 @@ class TailTrackView():
 
     def offset_changed(self):
         self.start_point_offset = [int(self.sliders[2].value()), int(self.sliders[3].value())]
-        self.update_start_point = True
+        self.angle_offset = int(self.sliders[4].value())
+        self.update_offsets = True
 
     def savebuttonpressed(self):
         self.saveconfigas = filedialog.asksaveasfilename(defaultextension='.ini', filetypes =[('INI files', '*.ini')])
