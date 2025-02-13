@@ -34,15 +34,15 @@ savevideo = bool(config['params']['savevideo']) # grayscale video without tracki
 logdata = bool(config['params']['logdata'])
 
 # Camera parameters
-maxresolution=[int(config['params']['sensor_x']), int(config['params']['sensor_y'])]    # full sensor size
+maxresolution=[int(config['params']['sensor_x']), int(config['params']['sensor_y'])] # full sensor size
 framerate = int(config['params']['framerate']) # framerate to use in Hz
 exposure = float(config['params']['exposure']) # exposure time in milliseconds
-crop = bool(config['params']['crop'])                     # crop
+crop = bool(config['params']['crop'])          # crop to ROI or use full sensor size
 roi=[int(config['params']['roix']), int(config['params']['roiy']), int(config['params']['roiw']), int(config['params']['roih'])]
 
 # Tail tracking
-illumination = config.get('params', 'illumination')      # darkfield or brightfield tail illumination
-taildirection = config.getint('params', 'taildirection') # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4.
+illumination = config.get('params', 'illumination')     # darkfield or brightfield tail illumination
+taildirection = config.getint('params', 'taildirection')# direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4.
 gainv = config.getfloat('params', 'gainv')              # forward gain to initialize sliders
 gainh = config.getfloat('params', 'gainh')              # turning gain to initialize sliders
 tail_tracking_nsteps = config.getint('params', 'tail_tracking_nsteps')  # number of points to track, excluding the stationary start point at the base of the tail
@@ -55,7 +55,7 @@ blur_kernel = [config.getint('params', 'blur_kernel'), config.getint('params', '
 show_arc = config.getboolean('params', 'show_arc')      # visualize arcs used to find tail
 show_midline = config.getboolean('params', 'show_midline')   # show an imaginary midline
 
-buffer_size = config.getfloat('params', 'buffer_size')    # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
+buffer_size = config.getfloat('params', 'buffer_size')  # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
 lowpass_tau = config.getint('params', 'lowpass_tau')    # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
 estimator = config.get('params', 'estimator')           # estimator to use for velocity and heading calculation
 estimator_history = config.getfloat('params', 'estimator_history') # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
