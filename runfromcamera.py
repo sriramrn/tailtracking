@@ -1,5 +1,3 @@
-from pathlib import Path
-import sys
 import numpy as np
 import cv2
 from ximeacamera import XimeaCamera
@@ -14,59 +12,60 @@ import time
 import csv
 import tkinter as tk
 from tkinter import filedialog
+import configparser
 root = tk.Tk()
 root.withdraw()
 root.update()
 
-"""
-TODO
-1) swap width and height based on taildirection value ----- DONE
-2) save tail points, cumulative tail bend angle, gains and framecount to csv file
-3) scale marker sizes for overlay based on image dimensions ----- DONE
-"""
 
 """
 INPUT PARAMETERS
 """
 
-savepath = 'tailtracking/log/' # path to save video and log file
-savevideo = False # grayscale video without tracking overlay is saved
-logdata = False
+configfile = None
+if configfile is None:
+    configfile = filedialog.askopenfilename(initialdir='.', title='Select configuration file', filetypes=[('INI files', '*.ini')])
+
+config = configparser.ConfigParser()
+config.read(configfile)
+
+savepath = config['params']['savepath']         # path to save video and log file
+savevideo = bool(config['params']['savevideo']) # grayscale video without tracking overlay is saved
+logdata = bool(config['params']['logdata'])
 
 # Camera parameters
-maxresolution=[2048,1088]       # full sensor size
-framerate = 150                 # framerate to use in Hz. Higher values lead to dropped frames. Use counters to check if the numbers are acceptable
-exposure = 1.                   # exposure time in milliseconds
-crop = True                     # crop
-roi=[4, 4, 180, 240]            # ROI x, y, w, h. Note that rotations to fix tail direction may transpose width and height
+maxresolution=[int(config['params']['sensor_x']), int(config['params']['sensor_y'])]    # full sensor size
+framerate = int(config['params']['framerate']) # framerate to use in Hz
+exposure = float(config['params']['exposure']) # exposure time in milliseconds
+crop = bool(config['params']['crop'])                     # crop
+roi=[int(config['params']['roix']), int(config['params']['roiy']), int(config['params']['roiw']), int(config['params']['roih'])]
 
 # Tail tracking
-illumination = 'darkfield'      # darkfield or brightfield tail illumination
-taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
-gainv = 1.                      # forward gain to initialize sliders
-gainh = 1.                      # turning gain to initialize sliders
-tail_tracking_nsteps = 5        # number of points to track, excluding the stationary start point at the base of the tail
-tail_tracking_step_size = 25    # step size between successive tail tracking points
-theta_range = [-.8,.8]          # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
-dtheta = 0.12                   # angular step size to extract a radial intensity profile
-start_point_offset = [0, 0]     # offset to position the start point format: [x,y], x can only be positive, y can have negative or positive values relative to 0.5x frame height
-blur = True                     # spatial filter to blur video frames before tail tracking
-blur_kernel = [3,3]             # kernel size to apply blur (stackBlur function from opencv, similar to a Gaussian blur, speed independent of kernel size)
-show_arc = True                 # visualize arcs used to find tail
-show_midline = True             # show an imaginary line down the middle of the frame to aid with tail positioning
+illumination = config.get('params', 'illumination')      # darkfield or brightfield tail illumination
+taildirection = config.getint('params', 'taildirection') # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4.
+gainv = config.getfloat('params', 'gainv')              # forward gain to initialize sliders
+gainh = config.getfloat('params', 'gainh')              # turning gain to initialize sliders
+tail_tracking_nsteps = config.getint('params', 'tail_tracking_nsteps')  # number of points to track, excluding the stationary start point at the base of the tail
+tail_tracking_step_size = config.getint('params', 'tail_tracking_step_size')    # step size between successive tail tracking points
+theta_range = [-config.getfloat('params', 'theta_range'), config.getfloat('params', 'theta_range')] # angular range in radians to search for the tail
+dtheta = config.getfloat('params', 'dtheta')            # angular step size to extract a radial intensity profile
+start_point_offset = [config.getint('params', 'offset_x'), config.getint('params', 'offest_y')] # offset to position the start point format: [x,y]                                                  
+blur = config.getboolean('params', 'blur')              # spatial filter to blur video frames before tail tracking
+blur_kernel = [config.getint('params', 'blur_kernel'), config.getint('params', 'blur_kernel')]
+show_arc = config.getboolean('params', 'show_arc')      # visualize arcs used to find tail
+show_midline = config.getboolean('params', 'show_midline')   # show an imaginary midline
 
-buffer_size = 5.                # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
-lowpass_tau = 100               # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming 
-estimator_history = 0.2         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
-estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
-
-broadcast_udp = True            # broadcast UDP message to Panda3D. Same address and port must be used by the listener            
-udp_ip = '127.0.0.1'
-udp_port = 5005
+buffer_size = config.getfloat('params', 'buffer_size')    # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
+lowpass_tau = config.getint('params', 'lowpass_tau')    # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
+estimator = config.get('params', 'estimator')           # estimator to use for velocity and heading calculation
+estimator_history = config.getfloat('params', 'estimator_history') # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
+broadcast_udp = config.getboolean('params', 'broadcast_udp') # broadcast UDP message to Panda3D. Same address and port must be used by the listener            
+udp_ip = config.get('params','udp_ip')
+udp_port = config.getint('params','udp_port')
 
 # GUI
-gui_window_size = [800,500]     # size of the GUI window
-plot_fps=False                  # plotting fps reduces performance significantly. use only for diagnostics
+gui_window_size = [config.getint('params', 'gui_window_w'), config.getint('params', 'gui_window_h')] # size of the GUI window
+plot_fps = config.getboolean('params', 'plot_fps') # plotting fps reduces performance significantly. use only for diagnostics
 
 """
 INPUT PARAMETERS END HERE
@@ -223,6 +222,22 @@ while True:
             cam.setROI(np.array(cam.roi)+np.array([0,-4,0,0]))
         if liveview.move_right:
             cam.setROI(np.array(cam.roi)+np.array([0,4,0,0]))
+
+    if liveview.saveconfig:
+        # save updated configuration to file
+        config['params']['roix'] =  str(cam.roi[0])
+        config['params']['roiy'] =  str(cam.roi[1])
+        config['params']['roiw'] =  str(cam.roi[2])
+        config['params']['roih'] =  str(cam.roi[3])
+        config['params']['gainv'] = str(gainv)
+        config['params']['gainh'] = str(gainh)
+        config['params']['offset_x'] = str(liveview.start_point_offset[0])
+        config['params']['offset_y'] = str(liveview.start_point_offset[1])
+
+        with open(liveview.saveconfigas, 'w') as configfile:
+            config.write(configfile)
+
+        liveview.saveconfig = False
 
 cam.close()
 

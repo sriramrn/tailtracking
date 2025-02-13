@@ -1,5 +1,3 @@
-from pathlib import Path
-import sys
 import cv2
 from cameraview import TailTrackView
 from videowriter import VideoWriter
@@ -16,12 +14,6 @@ root = tk.Tk()
 root.withdraw()
 root.update()
 
-"""
-TODO
-1) swap width and height based on taildirection value ----- DONE
-2) save tail points, cumulative tail bend angle, gains and framecount to csv file ----- DONE
-3) scale marker sizes for overlay based on image dimensions ----- DONE
-"""
 
 """
 INPUT PARAMETERS
