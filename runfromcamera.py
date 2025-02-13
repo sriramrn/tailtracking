@@ -29,16 +29,16 @@ if configfile is None:
 config = configparser.ConfigParser()
 config.read(configfile)
 
-savepath = config['params']['savepath']         # path to save video and log file
-savevideo = bool(config['params']['savevideo']) # grayscale video without tracking overlay is saved
-logdata = bool(config['params']['logdata'])
+savepath = config.get('params', 'savepath') # path to save video and log file
+savevideo = config.getboolean('params', 'savevideo') # grayscale video without tracking overlay is saved
+logdata = config.getboolean('params', 'logdata')
 
 # Camera parameters
-maxresolution=[int(config['params']['sensor_x']), int(config['params']['sensor_y'])] # full sensor size
-framerate = int(config['params']['framerate']) # framerate to use in Hz
-exposure = float(config['params']['exposure']) # exposure time in milliseconds
-crop = bool(config['params']['crop'])          # crop to ROI or use full sensor size
-roi=[int(config['params']['roix']), int(config['params']['roiy']), int(config['params']['roiw']), int(config['params']['roih'])]
+maxresolution = [config.getint('params', 'maxresolution_x'), config.getint('params', 'maxresolution_y')] # maximum resolution of the camera
+framerate = config.getint('params', 'framerate') # frame rate in frames per second
+exposure = config.getfloat('params', 'exposure') # exposure time in milliseconds
+crop = config.getboolean('params', 'crop') # crop the video to the region of interest
+roi = [config.getint('params', 'roix'), config.getint('params', 'roiy'), config.getint('params', 'roiw'), config.getint('params', 'roih')] # region of interest
 
 # Tail tracking
 illumination = config.get('params', 'illumination')     # darkfield or brightfield tail illumination
