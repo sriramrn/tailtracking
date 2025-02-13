@@ -12,6 +12,11 @@ import socket
 import struct
 import time
 import csv
+import tkinter as tk
+from tkinter import filedialog
+root = tk.Tk()
+root.withdraw()
+
 
 """
 TODO
@@ -25,11 +30,8 @@ INPUT PARAMETERS
 """
 
 savepath = 'tailtracking/log/' # path to save video and log file
-prefix = 'date_fishX_sessionY' # prefix for video and log file names (replace 'date' with date, X and Y with fish and session numbers)
 savevideo = False # grayscale video without tracking overlay is saved
 logdata = False
-videofile = savepath + prefix + '_vid.mp4' 
-logfile =  savepath + prefix + '_tracking.csv'
 
 # Camera parameters
 maxresolution=[2048,1088]       # full sensor size
@@ -39,6 +41,7 @@ crop = True                     # crop
 roi=[4, 4, 180, 240]            # ROI x, y, w, h. Note that rotations to fix tail direction may transpose width and height
 
 # Tail tracking
+illumination = 'darkfield'      # darkfield or brightfield tail illumination
 taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
 gainv = 1.                      # forward gain to initialize sliders
 gainh = 1.                      # turning gain to initialize sliders
@@ -70,20 +73,15 @@ INPUT PARAMETERS END HERE
 """
 
 if savevideo or logdata:
-    while True:
-        if Path(logfile).is_file() or Path(videofile).is_file():
-            user_input = input("One or more files exist in the specified path. Enter y/n to overwrite data or quit: ")
-        else:
-            break
 
-        if user_input.lower() == 'y':
-            print("Input received, overwriting data")
-            break
-        elif user_input.lower() == 'n':
-            print("Input received, aborting capture")
-            sys.exit()
-        else:
-            print("Invalid input, enter y to overwrite or n to abort")
+    videofile = filedialog.asksaveasfilename(initialdir=savepath, title='Save video as', defaultextension='.mp4', filetypes=[('MP4 files', '*.mp4')])
+
+    if len(videofile) == 0:
+        print("No file selected, will continue without saving")
+        savevideo = False
+        logdata = False
+    else:
+        logfile = videofile.split('.')[0] + '_tracking.csv'
                 
 
 cam = XimeaCamera(maxresolution, framerate, exposure, roi, crop=crop, maxfps=False)
@@ -144,7 +142,7 @@ if broadcast_udp:
 liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, gainv=gainv, gainh=gainh, plotfps=plot_fps, start_point_offset=start_point_offset)
 
 tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size,
-                      theta_range=theta_range, dtheta=dtheta, illumination='darkfield')
+                      theta_range=theta_range, dtheta=dtheta, illumination=illumination)
 
 counter = 0
 velocity = 0
