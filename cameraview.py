@@ -182,7 +182,7 @@ class TailTrackView():
         p3 = self.win.addLayout(row=0, col=0, rowspan=3, colspan=2)
         p3.setContentsMargins(20,20,20,20)
 
-        [p3.addItem(x,row=y,col=z) for x,y,z in zip(button_proxies,[0,0,0,1,1,2,2,3,3],[0,1,2,0,1,0,1])]
+        [p3.addItem(x,row=y,col=z) for x,y,z in zip(button_proxies,[0,0,0,1,1,2,2],[0,1,2,0,1,0,1])]
 
         # Create sliders
         slider_box = self.win.addLayout(row=0, col=3, rowspan=3, colspan=2)
@@ -194,8 +194,7 @@ class TailTrackView():
         [x.setValue(y) for x,y in zip(self.sliders,[int(self.gainv*10),int(self.gainh*10), self.start_point_offset[0], self.start_point_offset[1], self.angle_offset])]
         slider_labels = [pg.LabelItem(x) for x in ['gv', 'gh', 'x_tail', 'y_tail', 'angle']]
         [x.setParentItem(slider_box.graphicsItem()) for x in slider_labels]
-        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.05, .75, nsliders))]
-
+        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.06, .78, nsliders))]
 
         styles = "QSlider::groove:horizontal { background: #3b3b3b; position: absolute; left: 0px; right: 0px; border-radius:0px}"
         styles += "QSlider::handle:horizontal { height: 5px; background: #ffa904; margin: 0 -8px; border-style:solid; border-color: grey;border-width:1px;border-radius:3px}"
