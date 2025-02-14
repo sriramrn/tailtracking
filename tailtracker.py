@@ -85,7 +85,7 @@ class TailTracker():
         return tailcoords, np.array(list(zip(X,Y)))
 
 
-    def estimator(self, type='cumulative_tail_angle', gain_v=1., gain_t=1., history=None):
+    def estimator(self, type='cumulative_tail_angle', gain_v=1., gain_t=1., threshold_v=0, threshold_t=0, history=None):
         
         velocity = 0
         theta = 0
@@ -95,7 +95,7 @@ class TailTracker():
             if history is not None:
                 
                 history = np.array(history)
-                theta = np.mean(history)
+                theta = np.sum(history)
 
                 pos = np.abs(history[history>=0])
                 neg = np.abs(history[history<0])
@@ -103,20 +103,30 @@ class TailTracker():
                     pos = [0]
                 if len(neg) == 0:
                     neg = [0]
-                velocity = min([np.sum(pos),np.sum(neg)])
+                velocity = 2 * min([np.sum(pos),np.sum(neg)])
 
             else:                
                 angles_abs = np.abs(self.angles)
                 maxangle_abs = np.max(angles_abs)
                 meanangle_abs = np.mean(angles_abs)
 
-                velocity = meanangle_abs
-                theta = self.cumulative_tail_angle
+                velocity = meanangle_abs * gain_v
+                theta = self.cumulative_tail_angle * gain_t
+            
+            if np.abs(velocity) >= threshold_v:
+                velocity = velocity
+            else:
+                velocity = 0.
 
-        return velocity*gain_v, theta*gain_t
+            if np.abs(theta) >= threshold_t:
+                theta = theta
+            else:
+                theta = 0.    
+
+        return velocity, theta
 
 
-    def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., history=None):
+    def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., threshold_v=0, threshold_t=0, history=None):
 
         tailpoints = [np.array(self.start_point)]
         prev_point = self.start_point
@@ -139,6 +149,7 @@ class TailTracker():
 
         self.cumulative_tail_angle = sum(self.angles)
 
-        velocity, theta = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, history=history)
+        velocity, theta = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, threshold_v=threshold_v,
+                                         threshold_t=threshold_t, history=history)
 
         return tailpoints, pointsonarc, velocity, theta

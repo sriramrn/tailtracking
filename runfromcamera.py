@@ -34,7 +34,7 @@ savevideo = config.getboolean('params', 'savevideo') # grayscale video without t
 logdata = config.getboolean('params', 'logdata')
 
 # Camera parameters
-maxresolution = [config.getint('params', 'maxresolution_x'), config.getint('params', 'maxresolution_y')] # maximum resolution of the camera
+maxresolution = [config.getint('params', 'sensor_x'), config.getint('params', 'sensor_y')] # maximum resolution of the camera
 framerate = config.getint('params', 'framerate') # frame rate in frames per second
 exposure = config.getfloat('params', 'exposure') # exposure time in milliseconds
 crop = config.getboolean('params', 'crop') # crop the video to the region of interest
@@ -45,6 +45,8 @@ illumination = config.get('params', 'illumination')     # darkfield or brightfie
 taildirection = config.getint('params', 'taildirection')# direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4.
 gainv = config.getfloat('params', 'gainv')              # forward gain to initialize sliders
 gainh = config.getfloat('params', 'gainh')              # turning gain to initialize sliders
+threshold_v = config.getfloat('params', 'threshold_v')  # threshold to detect forward swims from the scaled estimate before lowpass filtering
+threshold_h = config.getfloat('params', 'threshold_h')  # threshold to detect turns from the scaled estimate before lowpass filtering
 tail_tracking_nsteps = config.getint('params', 'tail_tracking_nsteps')  # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = config.getint('params', 'tail_tracking_step_size')    # step size between successive tail tracking points
 theta_range = [-config.getfloat('params', 'theta_range'), config.getfloat('params', 'theta_range')] # angular range in radians to search for the tail
@@ -165,7 +167,7 @@ while True:
     if blur:
         frame = cv2.stackBlur(frame,ksize=blur_kernel)            
 
-    tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=1, gain_t=3, 
+    tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=1, gain_t=3, threshold_v=threshold_v, threshold_t=threshold_h,
                                             history=cumulative_tail_angle_buffer.buffer[-estimator_frames::])
 
     velocity_buffer.update(vel*gainv)

@@ -28,6 +28,8 @@ illumination = 'darkfield'      # darkfield or brightfield tail illumination
 taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
 gainv = 1.                      # forward gain to initialize sliders
 gainh = 1.                      # turning gain to initialize sliders
+threshold_v = 0.1               # threshold to detect forward swims from the scaled estimate before lowpass filtering
+threshold_h = 10                # threshold to detect turns from the scaled estimate before lowpass filtering
 tail_tracking_nsteps = 5        # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = 50    # step size between successive tail tracking points
 theta_range = [-1.,1.]          # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
@@ -145,7 +147,7 @@ while True:
         if blur:
             frame = cv2.stackBlur(frame,ksize=blur_kernel)            
 
-        tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=1, gain_t=3, 
+        tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=1, gain_t=3, threshold_v=threshold_v, threshold_t=threshold_h, 
                                                 history=cumulative_tail_angle_buffer.buffer[-estimator_frames::])
 
         velocity_buffer.update(vel*gainv)
