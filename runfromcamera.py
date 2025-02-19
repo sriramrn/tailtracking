@@ -10,9 +10,9 @@ import socket
 import struct
 import time
 import csv
+import configparser
 import tkinter as tk
 from tkinter import filedialog
-import configparser
 root = tk.Tk()
 root.withdraw()
 root.update()
