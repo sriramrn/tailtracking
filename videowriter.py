@@ -13,7 +13,7 @@ class VideoWriter():
         self.pix_fmt = pix_fmt
 
         self.output = av.open(self.saveas, 'w')
-        self.out_stream = self.output.add_stream(self.codec_name, str(self.framerate)) 
+        self.out_stream = self.output.add_stream(self.codec_name, int(self.framerate)) 
 
         self.out_stream.thread_type = 'AUTO'#"SLICE"
         self.out_stream.bit_rate = self.kbit_rate * 1000

@@ -190,7 +190,7 @@ class TailTrackView():
 
         nsliders = 5
         self.sliders = [pg.Qt.QtWidgets.QSlider(Qt.Horizontal) for x in range(nsliders)]
-        [x.setRange(*y) for x,y in zip (self.sliders, [[0,50], [0,50], [0,framesize[0]], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]])]
+        [x.setRange(*y) for x,y in zip (self.sliders, [[0,50], [0,50], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]])]
         [x.setValue(y) for x,y in zip(self.sliders,[int(self.gainv*10),int(self.gainh*10), self.start_point_offset[0], self.start_point_offset[1], self.angle_offset])]
         slider_labels = [pg.LabelItem(x) for x in ['gv', 'gh', 'x_tail', 'y_tail', 'angle']]
         [x.setParentItem(slider_box.graphicsItem()) for x in slider_labels]
