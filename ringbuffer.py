@@ -2,10 +2,11 @@ import numpy as np
 
 class FifoBuffer():
 
-    def __init__(self, length, rc_timeconstant = None):
+    def __init__(self, length, rc_timeconstant = None, threshold = None):
         self.length = length
         self.buffer = np.array([])
-        self.rc_timeconstant = rc_timeconstant            
+        self.rc_timeconstant = rc_timeconstant
+        self.threshold = threshold            
 
         if len(self.buffer) == 0:
             self.update(0.)
@@ -22,4 +23,7 @@ class FifoBuffer():
     def lowpass(self, value):
         alpha = 1./(self.rc_timeconstant + 1.)
         filt = self.buffer[-1] + alpha*(value-self.buffer[-1])
+        if self.threshold is not None:
+            if np.abs(filt) <= self.threshold:
+                filt = 0.
         return filt

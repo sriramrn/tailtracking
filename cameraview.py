@@ -138,7 +138,7 @@ class TailTrackView():
         
         ## Add plots
         nplots = 2
-        plottitles = ['velocity, gain: %0.1f' % self.gainv, 'heading, gain: %0.1f' % self.gainh]
+        plottitles = ['velocity, gain: %0.2f' % self.gainv, 'heading, gain: %0.2f' % self.gainh]
         plotrow = [3,4]
         plotcol = [3,3]
         if self.plotfps:
@@ -190,8 +190,8 @@ class TailTrackView():
 
         nsliders = 5
         self.sliders = [pg.Qt.QtWidgets.QSlider(Qt.Horizontal) for x in range(nsliders)]
-        [x.setRange(*y) for x,y in zip (self.sliders, [[0,50], [0,50], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]])]
-        [x.setValue(y) for x,y in zip(self.sliders,[int(self.gainv*10),int(self.gainh*10), self.start_point_offset[0], self.start_point_offset[1], self.angle_offset])]
+        [x.setRange(*y) for x,y in zip (self.sliders, [[0,100], [0,500], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]])]
+        [x.setValue(y) for x,y in zip(self.sliders,[int(self.gainv*100),int(self.gainh*100), self.start_point_offset[0], self.start_point_offset[1], self.angle_offset])]
         slider_labels = [pg.LabelItem(x) for x in ['gv', 'gh', 'x_tail', 'y_tail', 'angle']]
         [x.setParentItem(slider_box.graphicsItem()) for x in slider_labels]
         [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.06, .78, nsliders))]
@@ -217,12 +217,12 @@ class TailTrackView():
         self.move_right = False
 
     def slider1_changed(self):
-        self.gainv = self.sliders[0].value()/10.
-        self.plots[0].setTitle('velocity, gain: %0.1f' % self.gainv)
+        self.gainv = self.sliders[0].value()/100.
+        self.plots[0].setTitle('velocity, gain: %0.2f' % self.gainv)
 
     def slider2_changed(self):
-        self.gainh = self.sliders[1].value()/10.
-        self.plots[1].setTitle('heading, gain: %0.1f' % self.gainh)
+        self.gainh = self.sliders[1].value()/100.
+        self.plots[1].setTitle('heading, gain: %0.2f' % self.gainh)
 
     def offset_changed(self):
         self.start_point_offset = [int(self.sliders[2].value()), int(self.sliders[3].value())]

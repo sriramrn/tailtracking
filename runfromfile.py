@@ -26,8 +26,8 @@ logdata = True
 
 illumination = 'darkfield'      # darkfield or brightfield tail illumination
 taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
-gainv = 1.                      # forward gain to initialize sliders
-gainh = 1.                      # turning gain to initialize sliders
+gainv = 0.5                     # forward gain to initialize sliders
+gainh = 2.                      # turning gain to initialize sliders
 threshold_v = 0.1               # threshold to detect forward swims from the scaled estimate before lowpass filtering
 threshold_h = 5                 # threshold to detect turns from the scaled estimate before lowpass filtering
 tail_tracking_nsteps = 5        # number of points to track, excluding the stationary start point at the base of the tail
@@ -96,8 +96,8 @@ lptau_frames = int(lowpass_tau*framerate/1000.0)
 estimator_frames = int(estimator_history*framerate)
 
 cumulative_tail_angle_buffer = FifoBuffer(buffer_frames)
-velocity_buffer = FifoBuffer(buffer_frames, lptau_frames)
-theta_buffer = FifoBuffer(buffer_frames, lptau_frames)
+velocity_buffer = FifoBuffer(buffer_frames, lptau_frames, threshold=threshold_v)
+theta_buffer = FifoBuffer(buffer_frames, lptau_frames, threshold=threshold_h)
 fpsbuffer = FifoBuffer(buffer_frames)
 
 if savevideo:
@@ -147,8 +147,7 @@ while True:
         if blur:
             frame = cv2.stackBlur(frame,ksize=blur_kernel)            
 
-        tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=1, gain_t=3, threshold_v=threshold_v, threshold_t=threshold_h, 
-                                                history=cumulative_tail_angle_buffer.buffer[-estimator_frames::])
+        tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=1, gain_t=3, history=cumulative_tail_angle_buffer.buffer[-estimator_frames::])
 
         velocity_buffer.update(vel*gainv)
         theta_buffer.update(th*gainh)
