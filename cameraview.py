@@ -89,7 +89,7 @@ class LiveView():
 
 class TailTrackView():
         
-    def __init__(self, framesize, windowsize=[800,400], gainv=1., gainh=1., start_point_offset=[0,0], angle_offset=0, plotfps=True):
+    def __init__(self, framesize, windowsize=[800,400], windowposition=None, gainv=1., gainh=1., start_point_offset=[0,0], angle_offset=0, plotfps=True):
 
         self.prevframetime = time()
         self.frametime = time()
@@ -120,6 +120,8 @@ class TailTrackView():
         icon = QIcon("icon.png")
         self.win.setWindowIcon(icon)
         self.win.setFixedSize(*windowsize)
+        if windowposition is not None:
+            self.win.move(*windowposition)
         # self.win.resize(*windowsize)
         self.win.show()  ## show widget alone in its own window
         self.win.setWindowTitle('Tail Tracker')

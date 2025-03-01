@@ -68,6 +68,7 @@ udp_port = config.getint('params','udp_port')
 
 # GUI
 gui_window_size = [config.getint('params', 'gui_window_w'), config.getint('params', 'gui_window_h')] # size of the GUI window
+gui_window_position = [config.getint('params', 'gui_window_x'), config.getint('params', 'gui_window_y')] # size of the GUI window
 plot_fps = config.getboolean('params', 'plot_fps') # plotting fps reduces performance significantly. use only for diagnostics
 
 
@@ -142,8 +143,8 @@ if logdata:
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
 
-liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, gainv=gainv, gainh=gainh, plotfps=plot_fps, 
-                         start_point_offset=start_point_offset, angle_offset=angle_offset)
+liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, windowposition=gui_window_position, gainv=gainv, gainh=gainh,
+                         plotfps=plot_fps, start_point_offset=start_point_offset, angle_offset=angle_offset)
 
 tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size,
                       theta_range=theta_range, dtheta=dtheta, illumination=illumination)

@@ -51,6 +51,7 @@ udp_ip = '127.0.0.1'
 udp_port = 5005
 
 gui_window_size = [800,500]     # size of the GUI window
+gui_window_position = [100,100] # initial position on the screen
 plot_fps = False                # plotting fps reduces performance significantly. use only for diagnostics
 
 # Use to slow down video processing to simulate camera capture rates
@@ -112,8 +113,8 @@ if logdata:
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
 
-liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, gainv=gainv, gainh=gainh, plotfps=plot_fps, 
-                         start_point_offset=start_point_offset, angle_offset=angle_offset)
+liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, windowposition=gui_window_position, gainv=gainv, gainh=gainh,
+                         plotfps=plot_fps, start_point_offset=start_point_offset, angle_offset=angle_offset)
 
 tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, 
                       theta_range=theta_range, dtheta=dtheta, illumination=illumination)
