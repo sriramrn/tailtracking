@@ -151,9 +151,9 @@ class TailTrackView():
         
         self.plots = [self.win.addPlot(title=x, row=y, col=z, rowspan=1, colspan=2) for x,y,z in zip(plottitles, plotrow, plotcol)]
         
-        [x.setContentsMargins(10,0,0,0) for x in self.plots]
-        [x.showGrid(x=True,y=True,alpha=1.) for x in self.plots]
-        self.plotdata = [x.plot(pen='#ffdb00') for x in self.plots]
+        [i.setContentsMargins(10,0,0,0) for i in self.plots]
+        [i.showGrid(x=True,y=True,alpha=1) for i in self.plots]
+        self.plotdata = [i.plot(pen='#ffdb00') for i in self.plots]
 
         endbutton = QtGui.QPushButton('end')
         self.roiupdatebutton = QtGui.QPushButton('move roi') 
