@@ -29,7 +29,7 @@ taildirection = 2               # direction the tail is facing. display will be 
 gainv = 0.5                     # forward gain to initialize sliders
 gainh = 2.                      # turning gain to initialize sliders
 threshold_v = 0.1               # threshold to detect forward swims from the scaled estimate before lowpass filtering
-threshold_h = 5                 # threshold to detect turns from the scaled estimate before lowpass filtering
+threshold_h = 5.0               # threshold to detect turns from the scaled estimate before lowpass filtering
 tail_tracking_nsteps = 5        # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = 50    # step size between successive tail tracking points
 theta_range = [-1.,1.]          # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
@@ -42,8 +42,8 @@ show_arc = True                 # visualize arcs used to find tail
 show_midline = True             # show an imaginary line down the middle of the frame to aid with tail positioning
 
 buffer_size = 10.               # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
-lowpass_tau = 100               # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming 
-estimator_history = 0.2         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
+lowpass_tau = 50                # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming 
+estimator_history = 0.1         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
 estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
 
 broadcast_udp = True            # broadcast UDP message to Panda3D. Same address and port must be used by the listener            
@@ -108,7 +108,7 @@ if logdata:
     tail_points_header = ['pt_{}'.format(x) for x in range(tail_tracking_nsteps+1)]
     datafile = open(logfile, 'w', encoding='utf-8',  newline='')
     logger = csv.writer(datafile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-    logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'cumulative tail angle', *tail_points_header])    
+    logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'threshold_v', 'threshold_h', 'cumulative tail angle', *tail_points_header])    
 
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
@@ -183,12 +183,16 @@ while True:
 
         gainv = liveview.gainv
         gainh = liveview.gainh
+        threshold_v = liveview.thresh_v
+        threshold_h = liveview.thresh_h
+        velocity_buffer.threshold = threshold_v
+        theta_buffer.threshold = threshold_h
 
         if savevideo:
             writer.write_frame(frame)
 
         if logdata:
-            logger.writerow([framecount, velocity, theta, gainv, gainh, tracker.cumulative_tail_angle, *tail])
+            logger.writerow([framecount, velocity, theta, gainv, gainh, threshold_v, threshold_h, tracker.cumulative_tail_angle, *tail])
 
         if liveview.end:
             break

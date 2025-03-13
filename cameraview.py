@@ -89,7 +89,8 @@ class LiveView():
 
 class TailTrackView():
         
-    def __init__(self, framesize, windowsize=[800,400], windowposition=None, gainv=1., gainh=1., start_point_offset=[0,0], angle_offset=0, plotfps=True):
+    def __init__(self, framesize, windowsize=[800,400], windowposition=None, gainv=1., gainh=1., thresh_v=0., thresh_h=0.,
+                 start_point_offset=[0,0], angle_offset=0, plotfps=True):
 
         self.prevframetime = time()
         self.frametime = time()
@@ -103,6 +104,8 @@ class TailTrackView():
 
         self.gainv = gainv
         self.gainh = gainh
+        self.thresh_v = thresh_v
+        self.thresh_h = thresh_h
         self.start_point_offset = start_point_offset
         self.angle_offset = angle_offset
 
@@ -127,7 +130,7 @@ class TailTrackView():
         self.win.setWindowTitle('Tail Tracker')
 
         ## Create image item in a view box
-        self.view = self.win.addViewBox(lockAspect=True, row=3, col=0, rowspan=3, colspan=2)
+        self.view = self.win.addViewBox(lockAspect=True, row=4, col=0, rowspan=3, colspan=1)
         self.img = pg.ImageItem(border='#646464')
         self.view.addItem(self.img)
         
@@ -140,14 +143,15 @@ class TailTrackView():
         
         ## Add plots
         nplots = 2
-        plottitles = ['velocity, gain: %0.2f' % self.gainv, 'heading, gain: %0.2f' % self.gainh]
-        plotrow = [3,4]
-        plotcol = [3,3]
+        plottitles = ['velocity, gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v),
+                      'heading, gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h)]
+        plotrow = [4,5]
+        plotcol = [2,2]
         if self.plotfps:
             nplots += 1
             plottitles.append('output fps')
-            plotrow.append(5)
-            plotcol.append(3)
+            plotrow.append(6)
+            plotcol.append(2)
         
         self.plots = [self.win.addPlot(title=x, row=y, col=z, rowspan=1, colspan=2) for x,y,z in zip(plottitles, plotrow, plotcol)]
         
@@ -163,7 +167,7 @@ class TailTrackView():
         right = QtGui.QPushButton('right')
         save = QtGui.QPushButton('save')
 
-        buttons = [endbutton, self.roiupdatebutton, save, up, down, left, right]
+        buttons = [endbutton, self.roiupdatebutton, up, down, left, right, save]
         button_proxies = [QtGui.QGraphicsProxyWidget() for x in range(7)]
         
         [x.setWidget(y) for x,y in zip(button_proxies,buttons)]
@@ -181,22 +185,25 @@ class TailTrackView():
         [x.setAutoRepeat(True) for x in [up, down, left, right]]
         [x.setAutoRepeatInterval(50) for x in [up, down, left, right]]
 
-        p3 = self.win.addLayout(row=0, col=0, rowspan=3, colspan=2)
-        p3.setContentsMargins(20,20,20,20)
-
-        [p3.addItem(x,row=y,col=z) for x,y,z in zip(button_proxies,[0,0,0,1,1,2,2],[0,1,2,0,1,0,1])]
+        button_box = self.win.addLayout(row=0, col=0, rowspan=4, colspan=1)
+        button_box.setContentsMargins(20,20,20,20)
+        [button_box.addItem(x,row=y,col=z) for x,y,z in zip(button_proxies,[0,0,1,1,2,2,3],[0,1,0,1,0,1,0])]
 
         # Create sliders
-        slider_box = self.win.addLayout(row=0, col=3, rowspan=3, colspan=2)
-        slider_box.setContentsMargins(40,10,10,10)
+        slider_box = self.win.addLayout(row=0, col=2, rowspan=4, colspan=2)
+        slider_box.setContentsMargins(55,10,10,10)
 
-        nsliders = 5
+        nsliders = 7
+        slider_labels = [pg.LabelItem(x) for x in ['gain_v', 'gain_h', 'thresh_v', 'thresh_h', 'x_tail', 'y_tail', 'angle']]
+        slider_ranges = [[0,100], [0,500], [0,500], [0,2000], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]]
+        slider_initvals = [int(self.gainv*100),int(self.gainh*100), int(self.thresh_v*100), int(self.thresh_h*100),
+                           self.start_point_offset[0], self.start_point_offset[1], self.angle_offset]
+
         self.sliders = [pg.Qt.QtWidgets.QSlider(Qt.Horizontal) for x in range(nsliders)]
-        [x.setRange(*y) for x,y in zip (self.sliders, [[0,100], [0,500], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]])]
-        [x.setValue(y) for x,y in zip(self.sliders,[int(self.gainv*100),int(self.gainh*100), self.start_point_offset[0], self.start_point_offset[1], self.angle_offset])]
-        slider_labels = [pg.LabelItem(x) for x in ['gv', 'gh', 'x_tail', 'y_tail', 'angle']]
+        [x.setRange(*y) for x,y in zip (self.sliders, slider_ranges)]
+        [x.setValue(y) for x,y in zip(self.sliders, slider_initvals)]
         [x.setParentItem(slider_box.graphicsItem()) for x in slider_labels]
-        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.06, .78, nsliders))]
+        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.04, .82, nsliders))]
 
         styles = "QSlider::groove:horizontal { background: #3b3b3b; position: absolute; left: 0px; right: 0px; border-radius:0px}"
         styles += "QSlider::handle:horizontal { height: 5px; background: #ffa904; margin: 0 -8px; border-style:solid; border-color: grey;border-width:1px;border-radius:3px}"
@@ -210,7 +217,8 @@ class TailTrackView():
         [slider_box.addItem(x, row=y, col=4, rowspan=1, colspan=1) for x,y in zip(slider_proxies, np.arange(0,nsliders,1))]
 
         # Connect slider value change to a function
-        [x.valueChanged.connect(y) for x,y in zip(self.sliders, [self.slider1_changed, self.slider2_changed, self.offset_changed, self.offset_changed, self.offset_changed])]
+        [x.valueChanged.connect(y) for x,y in zip(self.sliders, [self.slider1_changed, self.slider2_changed, self.slider3_changed, self.slider4_changed,
+                                                                 self.offset_changed, self.offset_changed, self.offset_changed])]
 
         self.toggle_move = False
         self.move_up = False
@@ -220,15 +228,23 @@ class TailTrackView():
 
     def slider1_changed(self):
         self.gainv = self.sliders[0].value()/100.
-        self.plots[0].setTitle('velocity, gain: %0.2f' % self.gainv)
+        self.plots[0].setTitle('velocity, gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v))
 
     def slider2_changed(self):
         self.gainh = self.sliders[1].value()/100.
-        self.plots[1].setTitle('heading, gain: %0.2f' % self.gainh)
+        self.plots[1].setTitle('heading, gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h))
+
+    def slider3_changed(self):
+        self.thresh_v = self.sliders[2].value()/100.
+        self.plots[0].setTitle('velocity, gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v))
+
+    def slider4_changed(self):
+        self.thresh_h = self.sliders[3].value()/100.
+        self.plots[1].setTitle('heading, gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h))
 
     def offset_changed(self):
-        self.start_point_offset = [int(self.sliders[2].value()), int(self.sliders[3].value())]
-        self.angle_offset = int(self.sliders[4].value())
+        self.start_point_offset = [int(self.sliders[4].value()), int(self.sliders[5].value())]
+        self.angle_offset = int(self.sliders[6].value())
         self.update_offsets = True
 
     def savebuttonpressed(self):

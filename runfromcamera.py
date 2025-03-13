@@ -138,7 +138,7 @@ if logdata:
     tail_points_header = ['pt_{}'.format(x) for x in range(tail_tracking_nsteps+1)]
     datafile = open(logfile, 'w', encoding='utf-8',  newline='')
     logger = csv.writer(datafile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-    logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'cumulative tail angle', *tail_points_header])    
+    logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'threshold_v', 'threshold_h', 'cumulative tail angle', *tail_points_header])    
 
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
@@ -203,12 +203,16 @@ while True:
 
     gainv = liveview.gainv
     gainh = liveview.gainh
-
+    threshold_v = liveview.thresh_v
+    threshold_h = liveview.thresh_h
+    velocity_buffer.threshold = threshold_v
+    theta_buffer.threshold = threshold_h
+    
     if savevideo:
         writer.write_frame(frame)
 
     if logdata:
-        logger.writerow([counter, velocity, theta, gainv, gainh, tracker.cumulative_tail_angle, *tail])
+            logger.writerow([counter, velocity, theta, gainv, gainh, threshold_v, threshold_h, tracker.cumulative_tail_angle, *tail])
 
     if liveview.end:
         break
