@@ -143,8 +143,8 @@ class TailTrackView():
         
         ## Add plots
         nplots = 2
-        plottitles = ['velocity, gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v),
-                      'heading, gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h)]
+        plottitles = ['velocity- gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v),
+                      'heading- gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h)]
         plotrow = [4,5]
         plotcol = [2,2]
         if self.plotfps:
@@ -228,19 +228,19 @@ class TailTrackView():
 
     def slider1_changed(self):
         self.gainv = self.sliders[0].value()/100.
-        self.plots[0].setTitle('velocity, gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v))
+        self.plots[0].setTitle('velocity- gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v))
 
     def slider2_changed(self):
         self.gainh = self.sliders[1].value()/100.
-        self.plots[1].setTitle('heading, gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h))
+        self.plots[1].setTitle('heading- gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h))
 
     def slider3_changed(self):
         self.thresh_v = self.sliders[2].value()/100.
-        self.plots[0].setTitle('velocity, gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v))
+        self.plots[0].setTitle('velocity- gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v))
 
     def slider4_changed(self):
         self.thresh_h = self.sliders[3].value()/100.
-        self.plots[1].setTitle('heading, gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h))
+        self.plots[1].setTitle('heading- gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h))
 
     def offset_changed(self):
         self.start_point_offset = [int(self.sliders[4].value()), int(self.sliders[5].value())]
