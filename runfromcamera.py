@@ -78,14 +78,14 @@ INPUT PARAMETERS END HERE
 
 if savevideo or logdata:
 
-    videofile = filedialog.asksaveasfilename(initialdir=savepath, title='Save video as', defaultextension='.mp4', filetypes=[('MP4 files', '*.mp4')])
+    videofile = filedialog.asksaveasfilename(initialdir=savepath, initialfile='_tracking', title='Save video as', defaultextension='.mp4', filetypes=[('MP4 files', '*.mp4')])
 
     if len(videofile) == 0:
         print("No file selected, will continue without saving")
         savevideo = False
         logdata = False
     else:
-        logfile = videofile.split('.')[0] + '_tracking.csv'
+        logfile = videofile.split('.')[0] + '.csv'
                 
 
 cam = XimeaCamera(maxresolution, framerate, exposure, roi, crop=crop, maxfps=False)
