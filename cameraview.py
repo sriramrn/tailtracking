@@ -195,7 +195,7 @@ class TailTrackView():
 
         nsliders = 7
         slider_labels = [pg.LabelItem(x) for x in ['gain_v', 'gain_h', 'thresh_v', 'thresh_h', 'x_tail', 'y_tail', 'angle']]
-        slider_ranges = [[0,100], [0,500], [0,500], [0,2000], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]]
+        slider_ranges = [[0,200], [0,500], [0,500], [0,2000], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]]
         slider_initvals = [int(self.gainv*100),int(self.gainh*100), int(self.thresh_v*100), int(self.thresh_h*100),
                            self.start_point_offset[0], self.start_point_offset[1], self.angle_offset]
 
