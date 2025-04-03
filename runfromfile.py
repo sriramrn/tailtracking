@@ -19,7 +19,7 @@ root.update()
 INPUT PARAMETERS
 """
 
-videosource = 'sample_videos/test_vid_large.mp4' # path to video file
+videosource = 'sample_videos/test_vid_from_exp_short.mp4'#'sample_videos/test_vid_large.mp4' # path to video file
 savepath = 'log/' # path to save video and log file
 savevideo = True # grayscale video without tracking overlay is saved
 logdata = True
@@ -29,12 +29,12 @@ taildirection = 2               # direction the tail is facing. display will be 
 gainv = 0.005                   # forward gain to initialize sliders
 gainh = 0.05                    # turning gain to initialize sliders
 threshold_v = 0.01              # threshold to detect forward swims from the scaled estimate
-threshold_h = 0.25              # threshold to detect turns from the scaled estimate
+threshold_h = 0.1               # threshold to detect turns from the scaled estimate
 tail_tracking_nsteps = 7        # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = 35    # step size between successive tail tracking points
 theta_range = [-1.,1.]          # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
 dtheta = 0.12                   # angular step size to extract a radial intensity profile
-start_point_offset = [0,-12]    # offset to position the start point format: [x,y], x can only be positive, y can have negative or positive values relative to 0.5x frame height
+start_point_offset = [5,0]      # offset to position the start point format: [x,y], x can only be positive, y can have negative or positive values relative to 0.5x frame height
 angle_offset = 0                # tilt in tail position w.r.t horizontal
 blur = True                     # spatial filter to blur video frames before tail tracking
 blur_kernel = [3,3]             # kernel size to apply blur (stackBlur function from opencv, similar to a Gaussian blur, speed independent of kernel size)
@@ -55,8 +55,8 @@ gui_window_position = [100,100] # initial position on the screen
 plot_fps = False                # plotting fps reduces performance significantly. use only for diagnostics
 
 # Use to slow down video processing to simulate camera capture rates
-clampfps = False    # clamp framerate to simulate a real recording.  
-maxfps = 100        # fps to set when clampfps is true, the displayed fps value will not be accurate but will be close to this value, irrespective.
+clampfps = True    # clamp framerate to simulate a real recording.  
+maxfps = 150       # fps to set when clampfps is true, the displayed fps value will not be accurate but will be close to this value, irrespective.
 
 """
 INPUT PARAMETERS END HERE
