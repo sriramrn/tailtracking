@@ -26,12 +26,12 @@ logdata = True
 
 illumination = 'darkfield'      # darkfield or brightfield tail illumination
 taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
-gainv = 0.5                     # forward gain to initialize sliders
-gainh = 2.                      # turning gain to initialize sliders
-threshold_v = 0.1               # threshold to detect forward swims from the scaled estimate
-threshold_h = 5.0               # threshold to detect turns from the scaled estimate
-tail_tracking_nsteps = 5        # number of points to track, excluding the stationary start point at the base of the tail
-tail_tracking_step_size = 50    # step size between successive tail tracking points
+gainv = 0.005                   # forward gain to initialize sliders
+gainh = 0.05                    # turning gain to initialize sliders
+threshold_v = 0.01              # threshold to detect forward swims from the scaled estimate
+threshold_h = 0.25              # threshold to detect turns from the scaled estimate
+tail_tracking_nsteps = 7        # number of points to track, excluding the stationary start point at the base of the tail
+tail_tracking_step_size = 35    # step size between successive tail tracking points
 theta_range = [-1.,1.]          # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
 dtheta = 0.12                   # angular step size to extract a radial intensity profile
 start_point_offset = [0,-12]    # offset to position the start point format: [x,y], x can only be positive, y can have negative or positive values relative to 0.5x frame height
@@ -42,8 +42,8 @@ show_arc = True                 # visualize arcs used to find tail
 show_midline = True             # show an imaginary line down the middle of the frame to aid with tail positioning
 
 buffer_size = 10.               # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
-lowpass_tau = 50                # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming 
-estimator_history = 0.1         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
+lowpass_tau = 200               # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming 
+estimator_history = 0.7         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
 estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
 
 broadcast_udp = True            # broadcast UDP message to Panda3D. Same address and port must be used by the listener            

@@ -143,8 +143,8 @@ class TailTrackView():
         
         ## Add plots
         nplots = 2
-        plottitles = ['velocity- gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v),
-                      'heading- gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h)]
+        plottitles = ['velocity- gain: %0.3f, threshold: %0.3f' % (self.gainv, self.thresh_v),
+                      'heading- gain: %0.3f, threshold: %0.3f' % (self.gainh, self.thresh_h)]
         plotrow = [4,5]
         plotcol = [2,2]
         if self.plotfps:
@@ -195,8 +195,8 @@ class TailTrackView():
 
         nsliders = 7
         slider_labels = [pg.LabelItem(x) for x in ['gain_v', 'gain_h', 'thresh_v', 'thresh_h', 'x_tail', 'y_tail', 'angle']]
-        slider_ranges = [[0,200], [0,500], [0,500], [0,2000], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]]
-        slider_initvals = [int(self.gainv*100),int(self.gainh*100), int(self.thresh_v*100), int(self.thresh_h*100),
+        slider_ranges = [[0,10], [0,100], [0,20], [0,500], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]]
+        slider_initvals = [int(self.gainv*1000),int(self.gainh*1000), int(self.thresh_v*1000), int(self.thresh_h*1000),
                            self.start_point_offset[0], self.start_point_offset[1], self.angle_offset]
 
         self.sliders = [pg.Qt.QtWidgets.QSlider(Qt.Horizontal) for x in range(nsliders)]
@@ -227,20 +227,20 @@ class TailTrackView():
         self.move_right = False
 
     def slider1_changed(self):
-        self.gainv = self.sliders[0].value()/100.
-        self.plots[0].setTitle('velocity- gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v))
+        self.gainv = self.sliders[0].value()/1000.
+        self.plots[0].setTitle('velocity- gain: %0.3f, threshold: %0.3f' % (self.gainv, self.thresh_v))
 
     def slider2_changed(self):
-        self.gainh = self.sliders[1].value()/100.
-        self.plots[1].setTitle('heading- gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h))
+        self.gainh = self.sliders[1].value()/1000.
+        self.plots[1].setTitle('heading- gain: %0.3f, threshold: %0.3f' % (self.gainh, self.thresh_h))
 
     def slider3_changed(self):
-        self.thresh_v = self.sliders[2].value()/100.
-        self.plots[0].setTitle('velocity- gain: %0.2f, threshold: %0.2f' % (self.gainv, self.thresh_v))
+        self.thresh_v = self.sliders[2].value()/1000.
+        self.plots[0].setTitle('velocity- gain: %0.3f, threshold: %0.3f' % (self.gainv, self.thresh_v))
 
     def slider4_changed(self):
-        self.thresh_h = self.sliders[3].value()/100.
-        self.plots[1].setTitle('heading- gain: %0.2f, threshold: %0.2f' % (self.gainh, self.thresh_h))
+        self.thresh_h = self.sliders[3].value()/1000.
+        self.plots[1].setTitle('heading- gain: %0.3f, threshold: %0.3f' % (self.gainh, self.thresh_h))
 
     def offset_changed(self):
         self.start_point_offset = [int(self.sliders[4].value()), int(self.sliders[5].value())]
