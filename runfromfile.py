@@ -28,11 +28,7 @@ illumination = 'darkfield'      # darkfield or brightfield tail illumination
 taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
 gainv = 0.002                   # forward gain to initialize sliders
 gainh = 0.05                    # turning gain to initialize sliders
-<<<<<<< HEAD
 threshold_v = 0.002             # threshold to detect forward swims from the scaled estimate
-=======
-threshold_v = 0.01              # threshold to detect forward swims from the scaled estimate
->>>>>>> d66b0a4c470b8e9014fa3d980d7c0087144bb4d5
 threshold_h = 0.1               # threshold to detect turns from the scaled estimate
 tail_tracking_nsteps = 7        # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = 35    # step size between successive tail tracking points
