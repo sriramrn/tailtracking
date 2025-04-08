@@ -143,8 +143,8 @@ class TailTrackView():
         
         ## Add plots
         nplots = 2
-        plottitles = ['velocity- gain: %0.3f, threshold: %0.3f' % (self.gainv, self.thresh_v),
-                      'heading- gain: %0.3f, threshold: %0.3f' % (self.gainh, self.thresh_h)]
+        plottitles = ['velocity- gain: %0.5f, threshold: %0.5f' % (self.gainv, self.thresh_v),
+                      'heading- gain: %0.5f, threshold: %0.5f' % (self.gainh, self.thresh_h)]
         plotrow = [4,5]
         plotcol = [2,2]
         if self.plotfps:
@@ -195,8 +195,8 @@ class TailTrackView():
 
         nsliders = 7
         slider_labels = [pg.LabelItem(x) for x in ['gain_v', 'gain_h', 'thresh_v', 'thresh_h', 'x_tail', 'y_tail', 'angle']]
-        slider_ranges = [[0,10], [0,100], [0,20], [0,500], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]]
-        slider_initvals = [int(self.gainv*1000),int(self.gainh*1000), int(self.thresh_v*1000), int(self.thresh_h*1000),
+        slider_ranges = [[0,1000], [0,1000], [0,1000], [0,1000], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]]
+        slider_initvals = [self.getlinearvalue(self.gainv),self.getlinearvalue(self.gainh), self.getlinearvalue(self.thresh_v), self.getlinearvalue(self.thresh_h),
                            self.start_point_offset[0], self.start_point_offset[1], self.angle_offset]
 
         self.sliders = [pg.Qt.QtWidgets.QSlider(Qt.Horizontal) for x in range(nsliders)]
@@ -226,21 +226,35 @@ class TailTrackView():
         self.move_left = False
         self.move_right = False
 
+    def getlogvalue(self, linearvalue, max=1000, range=[0.00001,1]):
+        log_min = np.log10(range[0])
+        log_max = np.log10(range[1])
+        log_value = log_min + (log_max - log_min) * (linearvalue / max)
+        value = 10 ** log_value
+        return value
+
+    def getlinearvalue(self, logvalue, max=1000, range=[0.00001, 1]):
+        log_min = np.log10(range[0])
+        log_max = np.log10(range[1])
+        log_val = np.log10(logvalue)
+        value = int(max * (log_val - log_min) / (log_max - log_min))
+        return value
+
     def slider1_changed(self):
-        self.gainv = self.sliders[0].value()/1000.
-        self.plots[0].setTitle('velocity- gain: %0.3f, threshold: %0.3f' % (self.gainv, self.thresh_v))
+        self.gainv = self.getlogvalue(self.sliders[0].value())
+        self.plots[0].setTitle('velocity- gain: %0.5f, threshold: %0.5f' % (self.gainv, self.thresh_v))
 
     def slider2_changed(self):
-        self.gainh = self.sliders[1].value()/1000.
-        self.plots[1].setTitle('heading- gain: %0.3f, threshold: %0.3f' % (self.gainh, self.thresh_h))
+        self.gainh = self.getlogvalue(self.sliders[1].value())
+        self.plots[1].setTitle('heading- gain: %0.5f, threshold: %0.5f' % (self.gainh, self.thresh_h))
 
     def slider3_changed(self):
-        self.thresh_v = self.sliders[2].value()/1000.
-        self.plots[0].setTitle('velocity- gain: %0.3f, threshold: %0.3f' % (self.gainv, self.thresh_v))
+        self.thresh_v = self.getlogvalue(self.sliders[2].value())
+        self.plots[0].setTitle('velocity- gain: %0.5f, threshold: %0.5f' % (self.gainv, self.thresh_v))
 
     def slider4_changed(self):
-        self.thresh_h = self.sliders[3].value()/1000.
-        self.plots[1].setTitle('heading- gain: %0.3f, threshold: %0.3f' % (self.gainh, self.thresh_h))
+        self.thresh_h = self.getlogvalue(self.sliders[3].value())
+        self.plots[1].setTitle('heading- gain: %0.5f, threshold: %0.5f' % (self.gainh, self.thresh_h))
 
     def offset_changed(self):
         self.start_point_offset = [int(self.sliders[4].value()), int(self.sliders[5].value())]
