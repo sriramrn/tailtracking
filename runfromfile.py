@@ -26,7 +26,7 @@ logdata = True
 
 illumination = 'darkfield'      # darkfield or brightfield tail illumination
 taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
-gainv = 0.001                   # forward gain to initialize sliders
+gainv = 0.002                   # forward gain to initialize sliders
 gainh = 0.05                    # turning gain to initialize sliders
 threshold_v = 0.001             # threshold to detect forward swims from the scaled estimate
 threshold_h = 0.02              # threshold to detect turns from the scaled estimate
