@@ -62,6 +62,8 @@ buffer_size = config.getfloat('params', 'buffer_size')  # length of the circular
 lowpass_tau = config.getint('params', 'lowpass_tau')    # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
 estimator = config.get('params', 'estimator')           # estimator to use for velocity and heading calculation
 estimator_history = config.getfloat('params', 'estimator_history') # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
+adaptive_offset = config.getfloat('params', 'adaptive_offset')     # correct for tail position changes over time
+adaptive_offset_history = config.getfloat('params', 'adaptive_offset_history') # history in seconds taken from the buffer for adaptive offset calculation
 broadcast_udp = config.getboolean('params', 'broadcast_udp') # broadcast UDP message to Panda3D. Same address and port must be used by the listener            
 udp_ip = config.get('params','udp_ip')
 udp_port = config.getint('params','udp_port')
@@ -125,6 +127,7 @@ markersize = int(min(width,height)//150)+1
 buffer_frames = int(buffer_size*framerate)
 lptau_frames = int(lowpass_tau*framerate/1000.0)
 estimator_frames = int(estimator_history*framerate)
+adaptive_offset_frames = int(adaptive_offset_history*framerate)
 
 cumulative_tail_angle_buffer = FifoBuffer(buffer_frames)
 velocity_buffer = FifoBuffer(buffer_frames, lptau_frames, threshold=threshold_v)
@@ -138,7 +141,7 @@ if logdata:
     tail_points_header = ['pt_{}'.format(x) for x in range(tail_tracking_nsteps+1)]
     datafile = open(logfile, 'w', encoding='utf-8',  newline='')
     logger = csv.writer(datafile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-    logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'threshold_v', 'threshold_h', 'cumulative tail angle', *tail_points_header])    
+    logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'threshold_v', 'threshold_h', 'cumulative tail angle', 'offset', *tail_points_header])    
 
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
@@ -168,10 +171,11 @@ while True:
     if blur:
         frame = cv2.stackBlur(frame,ksize=blur_kernel)            
 
-    tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=1, gain_t=3, history=cumulative_tail_angle_buffer.buffer[-estimator_frames::])
+    tail, arc, vel, th, offs = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, history=cumulative_tail_angle_buffer.buffer, 
+                                                  estimator_frames=estimator_frames, adaptive_offset=adaptive_offset, adaptive_offset_frames=adaptive_offset_frames)
 
-    velocity_buffer.update(vel*gainv)
-    theta_buffer.update(th*gainh)
+    velocity_buffer.update(vel)
+    theta_buffer.update(th)
     cumulative_tail_angle_buffer.update(tracker.cumulative_tail_angle)
     fpsbuffer.update(liveview.fps)
 
@@ -212,7 +216,7 @@ while True:
         writer.write_frame(frame)
 
     if logdata:
-            logger.writerow([counter, velocity, theta, gainv, gainh, threshold_v, threshold_h, tracker.cumulative_tail_angle, *tail])
+            logger.writerow([counter, velocity, theta, gainv, gainh, threshold_v, threshold_h, tracker.cumulative_tail_angle, offs, *tail])
 
     if liveview.end:
         break
