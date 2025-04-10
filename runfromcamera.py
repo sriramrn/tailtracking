@@ -34,7 +34,7 @@ savevideo = config.getboolean('params', 'savevideo') # grayscale video without t
 logdata = config.getboolean('params', 'logdata')
 
 # Camera parameters
-camera_type = config.get('params', 'camera')[0] # ximea or alveum
+camera_type = config.get('params', 'camera') # ximea or alvium
 maxresolution = [config.getint('params', 'sensor_x'), config.getint('params', 'sensor_y')] # maximum resolution of the camera
 framerate = config.getint('params', 'framerate') # frame rate in frames per second
 exposure = config.getfloat('params', 'exposure') # exposure time in milliseconds
