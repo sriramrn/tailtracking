@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from ximeacamera import XimeaCamera
+# from ximeacamera import XimeaCamera # optional import based on .ini specification
 from cameraview import TailTrackView
 from videowriter import VideoWriter
 from tailtracker import TailTracker
@@ -34,6 +34,7 @@ savevideo = config.getboolean('params', 'savevideo') # grayscale video without t
 logdata = config.getboolean('params', 'logdata')
 
 # Camera parameters
+camera_type = config.get('params', 'camera') # ximea or alvium
 maxresolution = [config.getint('params', 'sensor_x'), config.getint('params', 'sensor_y')] # maximum resolution of the camera
 framerate = config.getint('params', 'framerate') # frame rate in frames per second
 exposure = config.getfloat('params', 'exposure') # exposure time in milliseconds
@@ -78,6 +79,21 @@ plot_fps = config.getboolean('params', 'plot_fps') # plotting fps reduces perfor
 INPUT PARAMETERS END HERE
 """
 
+"""
+CAMERA SETUP
+"""
+
+if camera_type.lower() == 'ximea':
+    from ximeacamera import XimeaCamera
+    cam = XimeaCamera(maxresolution, framerate, exposure, roi, crop=crop, maxfps=False)
+    cam.opencamera()
+    cam.cam.set_counter_selector("XI_CNT_SEL_TRANSPORT_TRANSFERRED_FRAMES")
+elif camera_type.lower() == 'alvium':
+    from alviumcamera import AlviumCamera
+    cam = AlviumCamera(maxresolution, framerate, exposure, roi, crop=crop, maxfps=False)
+else:
+    raise ValueError(f"Unsupported camera type: {camera_type}")
+
 if savevideo or logdata:
 
     videofile = filedialog.asksaveasfilename(initialdir=savepath, initialfile='_tracking', title='Save video as', defaultextension='.mp4', filetypes=[('MP4 files', '*.mp4')])
@@ -90,8 +106,8 @@ if savevideo or logdata:
         logfile = videofile.split('.')[0] + '.csv'
                 
 
-cam = XimeaCamera(maxresolution, framerate, exposure, roi, crop=crop, maxfps=False)
-cam.opencamera()
+#cam = XimeaCamera(maxresolution, framerate, exposure, roi, crop=crop, maxfps=False)
+#cam.opencamera()
 
 """
 # Use these counters to check for dropped frames. 
@@ -101,7 +117,7 @@ cam.opencamera()
 """
 # cam.cam.set_counter_selector("XI_CNT_SEL_API_SKIPPED_FRAMES")         # number of frames skipped at the API layer
 # cam.cam.set_counter_selector("XI_CNT_SEL_TRANSPORT_SKIPPED_FRAMES")   # number of frames skipped at the transport layer
-cam.cam.set_counter_selector("XI_CNT_SEL_TRANSPORT_TRANSFERRED_FRAMES") # frames transferred to buffer
+#cam.cam.set_counter_selector("XI_CNT_SEL_TRANSPORT_TRANSFERRED_FRAMES") # frames transferred to buffer
 
 
 def get_start_point(framesize, offset):
@@ -157,10 +173,13 @@ velocity = 0
 theta = 0
 
 while True:
-
     frame = cam.readframe()
-
-    counter = cam.cam.get_counter_value()
+    if frame is None:
+        continue  # skip iteration if no frame yet, might happen with alveum cam 
+    if camera_type == "ximea":
+        counter = cam.cam.get_counter_value()
+    elif camera_type == "alveum":
+        counter = cam.get_counter_value() 
 
     frametime = time.time()
 

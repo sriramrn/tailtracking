@@ -127,7 +127,7 @@ class AlviumCamera:
                     frame.convert_pixel_format(PixelFormat.Mono8)
                 except VmbFeatureError:
                     print("Warning: Could not convert to Mono8")
-            
+            self.last_frame_id = frame.get_id()
             self.frame = frame.as_numpy_ndarray()
             self.frame_ready = True
         finally:
@@ -139,6 +139,9 @@ class AlviumCamera:
             return self.frame.T if transpose else self.frame
         else:
             return None
+        
+    def get_counter_value(self):
+        return self.last_frame_id  
     
     def close(self):
         print("Stopping acquisition and closing camera...")
