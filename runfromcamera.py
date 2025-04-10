@@ -34,7 +34,7 @@ savevideo = config.getboolean('params', 'savevideo') # grayscale video without t
 logdata = config.getboolean('params', 'logdata')
 
 # Camera parameters
-camera_type = [config.get('params', 'camera')] # ximea or alveum
+camera_type = config.get('params', 'camera')[0] # ximea or alveum
 maxresolution = [config.getint('params', 'sensor_x'), config.getint('params', 'sensor_y')] # maximum resolution of the camera
 framerate = config.getint('params', 'framerate') # frame rate in frames per second
 exposure = config.getfloat('params', 'exposure') # exposure time in milliseconds
@@ -173,10 +173,13 @@ velocity = 0
 theta = 0
 
 while True:
-
     frame = cam.readframe()
-
-    counter = cam.cam.get_counter_value()
+    if frame is None:
+        continue  # skip iteration if no frame yet, might happen with alveum cam 
+    if camera_type == "ximea":
+        counter = cam.cam.get_counter_value()
+    elif camera_type == "alveum":
+        counter = cam.get_counter_value() 
 
     frametime = time.time()
 
