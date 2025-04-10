@@ -42,11 +42,12 @@ show_arc = True                 # visualize arcs used to find tail
 show_midline = True             # show an imaginary line down the middle of the frame to aid with tail positioning
 
 buffer_size = 30.               # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
-lowpass_tau = 200               # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming 
-estimator_history = 0.5         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
+lowpass_tau_v = 500             # time constant for forward velocity, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
+lowpass_tau_h = 200             # time constant for heading, in milliseconds
+estimator_history = 0.4         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
 estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
 adaptive_offset = True          # correct for tail position changes over time
-adaptive_offset_history = 20.   # history in seconds taken from the buffer for adaptive offset calculation
+adaptive_offset_history = 25.   # history in seconds taken from the buffer for adaptive offset calculation
 
 broadcast_udp = True            # broadcast UDP message to Panda3D. Same address and port must be used by the listener            
 udp_ip = '127.0.0.1'
@@ -95,13 +96,14 @@ start_point = get_start_point(framesize, start_point_offset)
 markersize = int(min(width,height)//100)+1
 
 buffer_frames = int(buffer_size*framerate)
-lptau_frames = int(lowpass_tau*framerate/1000.0)
+lptau_frames_v = int(lowpass_tau_v*framerate/1000.0)
+lptau_frames_h = int(lowpass_tau_h*framerate/1000.0)
 estimator_frames = int(estimator_history*framerate)
 adaptive_offset_frames = int(adaptive_offset_history*framerate)
 
 cumulative_tail_angle_buffer = FifoBuffer(buffer_frames)
-velocity_buffer = FifoBuffer(buffer_frames, lptau_frames, threshold=threshold_v)
-theta_buffer = FifoBuffer(buffer_frames, lptau_frames, threshold=threshold_h)
+velocity_buffer = FifoBuffer(buffer_frames, lptau_frames_v, threshold=threshold_v)
+theta_buffer = FifoBuffer(buffer_frames, lptau_frames_h, threshold=threshold_h)
 fpsbuffer = FifoBuffer(buffer_frames)
 
 if savevideo:

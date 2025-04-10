@@ -60,7 +60,8 @@ show_arc = config.getboolean('params', 'show_arc')      # visualize arcs used to
 show_midline = config.getboolean('params', 'show_midline')   # show an imaginary midline
 
 buffer_size = config.getfloat('params', 'buffer_size')  # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
-lowpass_tau = config.getint('params', 'lowpass_tau')    # time constant, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
+lowpass_tau_v = config.getint('params', 'lowpass_tau_v')    # time constant for forward velocity, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
+lowpass_tau_h = config.getint('params', 'lowpass_tau_h')    # time constant for heading, in milliseconds
 estimator = config.get('params', 'estimator')           # estimator to use for velocity and heading calculation
 estimator_history = config.getfloat('params', 'estimator_history') # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
 adaptive_offset = config.get('params', 'adaptive_offset')    # correct for tail position changes over time
@@ -141,13 +142,14 @@ start_point = get_start_point(framesize, start_point_offset)
 markersize = int(min(width,height)//150)+1
 
 buffer_frames = int(buffer_size*framerate)
-lptau_frames = int(lowpass_tau*framerate/1000.0)
+lptau_frames_v = int(lowpass_tau_v*framerate/1000.0)
+lptau_frames_h = int(lowpass_tau_h*framerate/1000.0)
 estimator_frames = int(estimator_history*framerate)
 adaptive_offset_frames = int(adaptive_offset_history*framerate)
 
 cumulative_tail_angle_buffer = FifoBuffer(buffer_frames)
-velocity_buffer = FifoBuffer(buffer_frames, lptau_frames, threshold=threshold_v)
-theta_buffer = FifoBuffer(buffer_frames, lptau_frames, threshold=threshold_h)
+velocity_buffer = FifoBuffer(buffer_frames, lptau_frames_v, threshold=threshold_v)
+theta_buffer = FifoBuffer(buffer_frames, lptau_frames_h, threshold=threshold_h)
 fpsbuffer = FifoBuffer(buffer_frames)
 
 if savevideo:
@@ -175,10 +177,10 @@ theta = 0
 while True:
     frame = cam.readframe()
     if frame is None:
-        continue  # skip iteration if no frame yet, might happen with alveum cam 
+        continue  # skip iteration if no frame yet, might happen with alvium cam 
     if camera_type == "ximea":
         counter = cam.cam.get_counter_value()
-    elif camera_type == "alveum":
+    elif camera_type == "alvium":
         counter = cam.get_counter_value() 
 
     frametime = time.time()
