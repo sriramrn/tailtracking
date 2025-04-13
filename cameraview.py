@@ -90,7 +90,7 @@ class LiveView():
 class TailTrackView():
         
     def __init__(self, framesize, windowsize=[800,400], windowposition=None, gainv=1., gainh=1., thresh_v=0., thresh_h=0.,
-                 start_point_offset=[0,0], angle_offset=0, plotfps=True):
+                 thresh_s=0.15, start_point_offset=[0,0], angle_offset=0, pointstoplot=None, plotfps=False):
 
         self.prevframetime = time()
         self.frametime = time()
@@ -108,12 +108,16 @@ class TailTrackView():
         self.thresh_h = thresh_h
         self.start_point_offset = start_point_offset
         self.angle_offset = angle_offset
+        self.thresh_s = thresh_s
 
         self.velocity = [0]
         self.heading = [0]
         self.fps = 0
         self.fpsbuffer = [self.fps]
         self.plotfps = plotfps
+        self.pointstoplot = pointstoplot
+        if self.pointstoplot is None:
+            self.pointstoplot = len(self.velocity) - 1
 
         self.framesize = framesize
 
@@ -191,19 +195,20 @@ class TailTrackView():
 
         # Create sliders
         slider_box = self.win.addLayout(row=0, col=2, rowspan=4, colspan=2)
-        slider_box.setContentsMargins(55,10,10,10)
-
-        nsliders = 7
-        slider_labels = [pg.LabelItem(x) for x in ['gain_v', 'gain_h', 'thresh_v', 'thresh_h', 'x_tail', 'y_tail', 'angle']]
-        slider_ranges = [[0,1000], [0,1000], [0,1000], [0,1000], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20]]
+        slider_box.setContentsMargins(55,5,5,5)
+        
+        nsliders = 8
+        slider_labels = [pg.LabelItem(x) for x in ['gain_v', 'gain_h', 'thresh_v', 'thresh_h', 'x_tail', 'y_tail', 'angle', 'thresh_s']]
+        slider_ranges = [[0,1000], [0,1000], [0,1000], [0,1000], [0,int(framesize[0])], [-int(framesize[1]/2 - 1),int(framesize[1]/2 - 1)], [-20,20], [0,50]]
         slider_initvals = [self.getlinearvalue(self.gainv),self.getlinearvalue(self.gainh), self.getlinearvalue(self.thresh_v), self.getlinearvalue(self.thresh_h),
-                           self.start_point_offset[0], self.start_point_offset[1], self.angle_offset]
+                           self.start_point_offset[0], self.start_point_offset[1], self.angle_offset, int(self.thresh_s*100)]
 
         self.sliders = [pg.Qt.QtWidgets.QSlider(Qt.Horizontal) for x in range(nsliders)]
+        [x.setFixedHeight(12) for x in self.sliders]
         [x.setRange(*y) for x,y in zip (self.sliders, slider_ranges)]
         [x.setValue(y) for x,y in zip(self.sliders, slider_initvals)]
         [x.setParentItem(slider_box.graphicsItem()) for x in slider_labels]
-        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.04, .82, nsliders))]
+        [x.anchor(itemPos=(0.,0.), parentPos=(0.,y)) for x,y in zip(slider_labels, np.linspace(.01, .86, nsliders))]
 
         styles = "QSlider::groove:horizontal { background: #3b3b3b; position: absolute; left: 0px; right: 0px; border-radius:0px}"
         styles += "QSlider::handle:horizontal { height: 5px; background: #ffa904; margin: 0 -8px; border-style:solid; border-color: grey;border-width:1px;border-radius:3px}"
@@ -214,11 +219,11 @@ class TailTrackView():
         # Add slider to the graphics layout using QGraphicsProxyWidget
         slider_proxies = [pg.QtGui.QGraphicsProxyWidget() for x in range(nsliders)]
         [x.setWidget(y) for x,y in zip(slider_proxies,self.sliders)]
-        [slider_box.addItem(x, row=y, col=4, rowspan=1, colspan=1) for x,y in zip(slider_proxies, np.arange(0,nsliders,1))]
+        [slider_box.addItem(x, row=y, col=0, rowspan=1, colspan=1) for x,y in zip(slider_proxies, np.arange(0,nsliders,1))]
 
         # Connect slider value change to a function
         [x.valueChanged.connect(y) for x,y in zip(self.sliders, [self.slider1_changed, self.slider2_changed, self.slider3_changed, self.slider4_changed,
-                                                                 self.offset_changed, self.offset_changed, self.offset_changed])]
+                                                                 self.offset_changed, self.offset_changed, self.offset_changed, self.slider8_changed])]
 
         self.toggle_move = False
         self.move_up = False
@@ -261,6 +266,9 @@ class TailTrackView():
         self.angle_offset = int(self.sliders[6].value())
         self.update_offsets = True
 
+    def slider8_changed(self):
+        self.thresh_s = self.sliders[7].value() / 100
+
     def savebuttonpressed(self):
         self.saveconfigas = filedialog.asksaveasfilename(defaultextension='.ini', filetypes =[('INI files', '*.ini')])
         self.saveconfig = True
@@ -300,17 +308,19 @@ class TailTrackView():
 
         self.prevframetime = time()
 
-        self.plotdata[0].setData(self.velocity)
-        self.plotdata[1].setData(self.heading)
+        self.plotdata[0].setData(self.velocity[-self.pointstoplot::])
+        self.plotdata[1].setData(self.heading[-self.pointstoplot::])
         if self.plotfps:
             self.plotdata[2].setData(self.fpsbuffer)
             self.plots[2].setTitle('output fps')
-            self.fpstext.setText('processed at %0.1f +- %0.1f fps' % (np.mean(self.fpsbuffer[-100::]), np.std(self.fpsbuffer[-100::])))
+            self.fpstext.setText('processed at %0.1f +- %0.1f fps \ncurvature threshold: %0.2f radians' % 
+                                 (np.mean(self.fpsbuffer[-100::]), np.std(self.fpsbuffer[-100::]), self.thresh_s))
 
         else:
             if len(self.fpsbuffer) > 1:
-                self.fpstext.setText('processed at %0.1f +- %0.1f fps' % (np.mean(self.fpsbuffer[-100::]), np.std(self.fpsbuffer[-100::])))
+                self.fpstext.setText('processed at %0.1f +- %0.1f fps \ncurvature threshold: %0.2f radians' % 
+                                    (np.mean(self.fpsbuffer[-100::]), np.std(self.fpsbuffer[-100::]), self.thresh_s))
             else:
-                self.fpstext.setText('processed at %0.1f fps' % self.fps)
+                self.fpstext.setText('processed at %0.1f fps \ncurvature threshold: %0.2f radians' % (self.fps, self.thresh_s))
 
         pg.QtGui.QApplication.processEvents()

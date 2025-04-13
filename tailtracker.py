@@ -86,7 +86,7 @@ class TailTracker():
 
 
     def estimator(self, type='cumulative_tail_angle', gain_v=1., gain_t=1., history=None, estimator_frames=1, 
-                  adaptive_offset=False, adaptive_offset_frames=1):
+                  adaptive_offset_buffer=None, adaptive_offset=False):
         
         velocity = 0
         theta = 0
@@ -99,7 +99,7 @@ class TailTracker():
                 estimator_history = history[-estimator_frames:]
 
                 if adaptive_offset:
-                    offset = np.median(history[-adaptive_offset_frames:])
+                    offset = np.median(adaptive_offset_buffer)
                     estimator_history = estimator_history - offset
                 
                 estimator_history = np.array(estimator_history)
@@ -125,7 +125,7 @@ class TailTracker():
     
 
     def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., history=None, estimator_frames=1, 
-                   adaptive_offset=False, adaptive_offset_frames=1):
+                   adaptive_offset_buffer=None, adaptive_offset=False, curvature_threshold=0.15):
 
         tailpoints = [np.array(self.start_point)]
         prev_point = self.start_point
@@ -148,7 +148,12 @@ class TailTracker():
 
         self.cumulative_tail_angle = sum(self.angles)
 
+        if np.std(self.angles) > curvature_threshold:
+            self.swimming = True
+        else:
+            self.swimming = False
+
         velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, history=history, estimator_frames=estimator_frames, 
-                                                 adaptive_offset=adaptive_offset, adaptive_offset_frames=adaptive_offset_frames)
+                                                 adaptive_offset_buffer=adaptive_offset_buffer, adaptive_offset=adaptive_offset)
         
         return tailpoints, pointsonarc, velocity, theta, offset
