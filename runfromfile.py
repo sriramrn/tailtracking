@@ -47,7 +47,7 @@ lowpass_tau_v = 200             # time constant for forward velocity, in millise
 lowpass_tau_h = 200             # time constant for heading, in milliseconds
 estimator_history = 0.7         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
 estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
-adaptive_offset = False          # correct for tail position changes over time
+adaptive_offset = True          # correct for tail position changes over time
 adaptive_offset_history = 5.    # history in seconds taken from the buffer for adaptive offset calculation
 curvature_threshold = 0.15      # standard deviations in radians for the tail segment angles to classify if swimming
 
