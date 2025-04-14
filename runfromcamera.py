@@ -164,7 +164,7 @@ if logdata:
     datafile = open(logfile, 'w', encoding='utf-8',  newline='')
     logger = csv.writer(datafile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
     logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'threshold_v', 'threshold_h', 
-                     'cumulative tail angle', 'offset', 'curvature_threshold', *tail_points_header])    
+                     'cumulative tail angle', 'offset', 'curvature_threshold', 'swimming', *tail_points_header])    
 
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
@@ -253,7 +253,8 @@ while True:
         writer.write_frame(frame)
 
     if logdata:
-            logger.writerow([counter, velocity, theta, gainv, gainh, threshold_v, threshold_h, tracker.cumulative_tail_angle, offs, curvature_threshold, *tail])
+            logger.writerow([counter, velocity, theta, gainv, gainh, threshold_v, threshold_h, tracker.cumulative_tail_angle, 
+                             offs, curvature_threshold, tracker.swimming, *tail])
 
     if liveview.end:
         break
@@ -282,9 +283,12 @@ while True:
         config['params']['roih'] =  str(cam.roi[3])
         config['params']['gainv'] = str(gainv)
         config['params']['gainh'] = str(gainh)
+        config['params']['threshold_v'] = str(threshold_v)
+        config['params']['threshold_h'] = str(threshold_h)
         config['params']['offset_x'] = str(liveview.start_point_offset[0])
         config['params']['offset_y'] = str(liveview.start_point_offset[1])
         config['params']['offset_a'] = str(angle_offset)
+        config['params']['curvature_threshold'] = str(curvature_threshold)
 
         with open(liveview.saveconfigas, 'w') as configfile:
             config.write(configfile)
