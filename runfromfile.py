@@ -27,10 +27,10 @@ logdata = True
 
 illumination = 'darkfield'      # darkfield or brightfield tail illumination
 taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
-gainv = 0.0005                  # forward gain to initialize sliders
-gainh = 0.05                    # turning gain to initialize sliders
+gainv = 0.00075                 # forward gain to initialize sliders
+gainh = 0.1                     # turning gain to initialize sliders
 threshold_v = 0.0002            # threshold to detect forward swims from the scaled estimate
-threshold_h = 0.05              # threshold to detect turns from the scaled estimate
+threshold_h = 0.1               # threshold to detect turns from the scaled estimate
 tail_tracking_nsteps = 7        # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = 35    # step size between successive tail tracking points
 theta_range = [-1.2,1.2]        # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
@@ -43,8 +43,8 @@ show_arc = True                 # visualize arcs used to find tail
 show_midline = True             # show an imaginary line down the middle of the frame to aid with tail positioning
 
 buffer_size = 20.               # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
-lowpass_tau_v = 200             # time constant for forward velocity, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
-lowpass_tau_h = 200             # time constant for heading, in milliseconds
+lowpass_tau_v = 400             # time constant for forward velocity, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
+lowpass_tau_h = 400             # time constant for heading, in milliseconds
 estimator_history = 0.7         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
 estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
 adaptive_offset = True          # correct for tail position changes over time
