@@ -43,8 +43,8 @@ show_arc = True                 # visualize arcs used to find tail
 show_midline = True             # show an imaginary line down the middle of the frame to aid with tail positioning
 
 buffer_size = 20.               # length of the circular buffer in seconds. velocity and heading plots will go back in time this many seconds  
-lowpass_tau_v = 400             # time constant for forward velocity, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
-lowpass_tau_h = 400             # time constant for heading, in milliseconds
+lowpass_tau_v = 200             # time constant for forward velocity, in milliseconds, of the lowpass filter to simulate inertial effects of swimming
+lowpass_tau_h = 200             # time constant for heading, in milliseconds
 estimator_history = 0.7         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
 estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
 adaptive_offset = True          # correct for tail position changes over time
