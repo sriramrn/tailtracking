@@ -73,7 +73,7 @@ class TailTracker():
             X.append(int(x))
             Y.append(int(y))
             
-        intensity_profile.append(self.image[Y,X])
+        intensity_profile = self.image[Y,X]
             
         if self.illumination == 'brightfield':
             tailidx = np.argmin(intensity_profile)
