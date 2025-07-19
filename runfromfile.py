@@ -31,6 +31,9 @@ gainv = 0.00075                 # forward gain to initialize sliders
 gainh = 0.1                     # turning gain to initialize sliders
 threshold_v = 0.0002            # threshold to detect forward swims from the scaled estimate
 threshold_h = 0.05              # threshold to detect turns from the scaled estimate
+maxv = 0.25                     # maximum value allowed for forward velocity
+maxh = 25.                      # maximum value allowed for heading change (convert)
+clamptomax = True               # clamp velocity and heading to maxv and maxh, respectively.
 tail_tracking_nsteps = 7        # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = 35    # step size between successive tail tracking points
 theta_range = [-1.2,1.2]        # angular range in radians to search for the tail, center of the range is rotated based on the angle of the previous segment
@@ -162,7 +165,8 @@ while True:
 
         tail, arc, vel, th, offs = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, history=cumulative_tail_angle_buffer.buffer, 
                                                       estimator_frames=estimator_frames, adaptive_offset_buffer=offset_buffer.buffer, 
-                                                      adaptive_offset=adaptive_offset, curvature_threshold=curvature_threshold)
+                                                      adaptive_offset=adaptive_offset, curvature_threshold=curvature_threshold, softclamp=clamptomax,
+                                                      maxv=maxv, maxh=maxh)
 
         velocity_buffer.update(vel)
         theta_buffer.update(th)

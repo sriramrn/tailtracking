@@ -15,6 +15,29 @@ class TailTracker():
         self.illumination = illumination
         self.thetas = np.arange(self.theta_range[0], self.theta_range[1], self.dtheta)
 
+
+    def soft_clamp(self, signal, max_value, softness=0.):
+        """
+        Soft clamps a signal using the tanh function with controllable softness.
+
+        Parameters:
+        - signal: A scalar or NumPy array input signal.
+        - max_value: The maximum (absolute) value the signal should be softly clamped to.
+        - softness: Controls how soft the clamp is. Higher = softer, Lower = closer to hard clamp.
+                    Must be > 0. and < 1.
+
+        Returns:
+        - Soft-clamped signal with values approaching ±max_value.
+        """
+        
+        if softness < 0. or softness > 1. :
+            raise ValueError("Softness must be in the range [0.,1.]")
+
+        softness = 1. + softness
+        
+        return max_value * np.tanh(signal / (max_value * softness))
+
+
     def rotate_bound(self, angle):
         #function from https://www.pyimagesearch.com/2017/01/02/rotate-images-correctly-with-opencv-and-python/
         (h, w) = self.image.shape[:2]
@@ -125,7 +148,7 @@ class TailTracker():
     
 
     def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., history=None, estimator_frames=1, 
-                   adaptive_offset_buffer=None, adaptive_offset=False, curvature_threshold=0.15):
+                   adaptive_offset_buffer=None, adaptive_offset=False, curvature_threshold=0.15, softclamp=False, maxv=None, maxh=None):
 
         tailpoints = [np.array(self.start_point)]
         prev_point = self.start_point
@@ -155,5 +178,9 @@ class TailTracker():
 
         velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, history=history, estimator_frames=estimator_frames, 
                                                  adaptive_offset_buffer=adaptive_offset_buffer, adaptive_offset=adaptive_offset)
+        
+        if softclamp:
+            velocity = self.soft_clamp(velocity, maxv)
+            theta = self.soft_clamp(theta, maxh)
         
         return tailpoints, pointsonarc, velocity, theta, offset

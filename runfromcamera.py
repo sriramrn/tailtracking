@@ -48,6 +48,9 @@ gainv = config.getfloat('params', 'gainv')              # forward gain to initia
 gainh = config.getfloat('params', 'gainh')              # turning gain to initialize sliders
 threshold_v = config.getfloat('params', 'threshold_v')  # threshold to detect forward swims from the scaled estimate
 threshold_h = config.getfloat('params', 'threshold_h')  # threshold to detect turns from the scaled estimate
+maxv = config.getfloat('params', 'maxv')                # maximum value allowed for forward velocity
+maxh = config.getfloat('params', 'maxh')                # maximum value allowed for heading change (convert)
+clamptomax = config.getboolean('params', 'clamptomax')  # clamp velocity and heading to maxv and maxh, respectively.
 tail_tracking_nsteps = config.getint('params', 'tail_tracking_nsteps')  # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = config.getint('params', 'tail_tracking_step_size')    # step size between successive tail tracking points
 theta_range = [-config.getfloat('params', 'theta_range'), config.getfloat('params', 'theta_range')] # angular range in radians to search for the tail
@@ -200,7 +203,8 @@ while True:
 
     tail, arc, vel, th, offs = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, history=cumulative_tail_angle_buffer.buffer, 
                                                   estimator_frames=estimator_frames, adaptive_offset_buffer=offset_buffer.buffer, 
-                                                  adaptive_offset=adaptive_offset, curvature_threshold=curvature_threshold)
+                                                  adaptive_offset=adaptive_offset, curvature_threshold=curvature_threshold, softclamp=clamptomax,
+                                                  maxv=maxv, maxh=maxh)
 
     velocity_buffer.update(vel)
     theta_buffer.update(th)
