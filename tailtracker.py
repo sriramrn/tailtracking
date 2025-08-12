@@ -14,7 +14,21 @@ class TailTracker():
         self.dtheta = dtheta
         self.illumination = illumination
         self.thetas = np.arange(self.theta_range[0], self.theta_range[1], self.dtheta)
+        self.smoothing_window = len(self.thetas) // 3
+        self.smoothing_iterations = 2
+        self.smoothen_intensity_profile = True
 
+    def smoothen(self, signal, window, iterations=2):
+        """
+        Iterative moving average filter.
+        """
+        w = np.ones(window)/window
+        
+        for i in range(iterations):
+            signal = np.convolve(signal,w,'same')
+        
+        return signal
+       
 
     def soft_clamp(self, signal, max_value, softness=0.):
         """
@@ -97,6 +111,8 @@ class TailTracker():
             Y.append(int(y))
             
         intensity_profile = self.image[Y,X]
+        if self.smoothen_intensity_profile:
+            intensity_profile = self.smoothen(intensity_profile, window=self.smoothing_window, iterations=self.smoothing_iterations)
             
         if self.illumination == 'brightfield':
             tailidx = np.argmin(intensity_profile)
