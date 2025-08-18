@@ -124,6 +124,7 @@ class TailTrackView():
         self.app = pg.mkQApp
         ## Create window with GraphicsView widget
         self.win = pg.GraphicsLayoutWidget(border='#646464')
+        self.win.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
         icon = QIcon("icon.png")
         self.win.setWindowIcon(icon)
         self.win.setFixedSize(*windowsize)
