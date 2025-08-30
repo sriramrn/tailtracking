@@ -50,6 +50,7 @@ lowpass_tau_v = 200             # time constant for forward velocity, in millise
 lowpass_tau_h = 200             # time constant for heading, in milliseconds
 estimator_history = 0.7         # history in seconds taken from the buffer to feed into the estimator for velocity and heading calculation
 estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading calculation
+n_caudal_points = 4             # number of caudal tail points (from the end of tail) to use for velocity estimation
 adaptive_offset = True          # correct for tail position changes over time
 adaptive_offset_history = 5.    # history in seconds taken from the buffer for adaptive offset calculation
 curvature_threshold = 0.15      # standard deviations in radians for the tail segment angles to classify if swimming
@@ -108,11 +109,9 @@ estimator_frames = int(estimator_history*framerate)
 adaptive_offset_frames = int(adaptive_offset_history*framerate)
 frames_to_plot = int(seconds_to_plot*framerate)
 
-cumulative_tail_angle_buffer = FifoBuffer(buffer_frames)
 velocity_buffer = FifoBuffer(buffer_frames, lptau_frames_v, threshold=threshold_v)
 theta_buffer = FifoBuffer(buffer_frames, lptau_frames_h, threshold=threshold_h)
 fpsbuffer = FifoBuffer(buffer_frames)
-offset_buffer = FifoBuffer(adaptive_offset_frames)
 
 if savevideo:
     writer = VideoWriter(framesize=framesize, framerate=framerate, saveas=videofile)
@@ -122,7 +121,7 @@ if logdata:
     datafile = open(logfile, 'w', encoding='utf-8',  newline='')
     logger = csv.writer(datafile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
     logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'threshold_v', 'threshold_h', 
-                     'cumulative tail angle', 'offset', 'curvature threshold', 'swimming', *tail_points_header])    
+                     'cumulative tail angle', 'curvature threshold', 'swimming', *tail_points_header])    
 
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
@@ -131,8 +130,9 @@ liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, window
                          thresh_v=threshold_v, thresh_h=threshold_h, thresh_s=curvature_threshold, plotfps=plot_fps, start_point_offset=start_point_offset,
                          angle_offset=angle_offset, pointstoplot=frames_to_plot)
 
-tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, 
-                      theta_range=theta_range, dtheta=dtheta, illumination=illumination)
+tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, theta_range=theta_range,
+                      dtheta=dtheta, illumination=illumination, ncaudalpoints=n_caudal_points, buffer_frames_tracking=estimator_frames,
+                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset)
 
 framecount = 0
 velocity = 0
@@ -163,19 +163,13 @@ while True:
         if blur:
             frame = cv2.stackBlur(frame,ksize=blur_kernel)
 
-        tail, arc, vel, th, offs = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, history=cumulative_tail_angle_buffer.buffer, 
-                                                      estimator_frames=estimator_frames, adaptive_offset_buffer=offset_buffer.buffer, 
-                                                      adaptive_offset=adaptive_offset, curvature_threshold=curvature_threshold, softclamp=clamptomax,
-                                                      maxv=maxv, maxh=maxh)
+        tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, curvature_threshold=curvature_threshold, 
+                                                softclamp=clamptomax, maxv=maxv, maxh=maxh)
 
         velocity_buffer.update(vel)
         theta_buffer.update(th)
-        cumulative_tail_angle_buffer.update(tracker.cumulative_tail_angle)
         fpsbuffer.update(liveview.fps)
         
-        if not tracker.swimming: #exclude frames with substantial tail curvature for adaptive offset calculation
-            offset_buffer.update(tracker.cumulative_tail_angle)
-    
         velocity = velocity_buffer.buffer[-1]
         theta = theta_buffer.buffer[-1]
 
@@ -219,8 +213,8 @@ while True:
             writer.write_frame(frame)
 
         if logdata:
-            logger.writerow([framecount, velocity, theta, gainv, gainh, threshold_v, threshold_h, tracker.cumulative_tail_angle, 
-                             offs, curvature_threshold, tracker.swimming, *tail])
+            logger.writerow([framecount, velocity, theta, gainv, gainh, threshold_v, threshold_h, 
+                             tracker.cumulative_tail_angle, curvature_threshold, tracker.swimming, *tail])
 
         if liveview.end:
             break
