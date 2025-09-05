@@ -25,10 +25,9 @@ class TailTracker():
         self.use_history = False
         if buffer_frames_tracking is not None:
             self.cumulative_tail_angle_buffer = FifoBuffer(buffer_frames_tracking)
-            self.caudal_tail_angle_buffer = FifoBuffer(buffer_frames_tracking)
             self.adaptive_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
-            self.adaptive_offset_buffer_caudal = FifoBuffer(buffer_frames_adaptive_offset)
             self.use_history = True
+
 
     def smoothen(self, signal, window, iterations=2):
         """
@@ -146,20 +145,17 @@ class TailTracker():
 
             if self.use_history:
 
-                estimator_history_cumangle = self.cumulative_tail_angle_buffer.buffer
-                estimator_history_caudangle = self.caudal_tail_angle_buffer.buffer
+                estimator_history = self.cumulative_tail_angle_buffer.buffer
 
                 if adaptive_offset:
                     offset = np.median(self.adaptive_offset_buffer.buffer)                    
-                    offset_caudal = np.median(self.adaptive_offset_buffer_caudal.buffer)
-                    estimator_history_cumangle = estimator_history_cumangle - offset
-                    estimator_history_caudangle = estimator_history_caudangle - offset_caudal
+                    estimator_history = estimator_history - offset
 
-                estimator_history_cumangle = np.array(estimator_history_cumangle)
-                theta = np.sum(estimator_history_cumangle)
+                estimator_history = np.array(estimator_history)
+                theta = np.sum(estimator_history)
 
-                pos = np.abs(estimator_history_caudangle[estimator_history_caudangle>=0])
-                neg = np.abs(estimator_history_caudangle[estimator_history_caudangle<0])
+                pos = np.abs(estimator_history[estimator_history>=0])
+                neg = np.abs(estimator_history[estimator_history<0])
                 if len(pos) == 0:
                     pos = [0]
                 if len(neg) == 0:
@@ -174,7 +170,7 @@ class TailTracker():
                 velocity = meanangle_abs
                 theta = self.cumulative_tail_angle
 
-        return velocity*gain_v, theta*gain_t
+        return velocity*gain_v, theta*gain_t, offset
     
 
     def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., curvature_threshold=0.15, softclamp=False, maxv=None, maxh=None):
@@ -198,25 +194,21 @@ class TailTracker():
 
         self.tailpoints = tailpoints
 
-        self.cumulative_tail_angle = sum(self.angles)
-        self.cumulative_tail_angle_caudal = sum(self.angles[-self.ncaudalpoints:])
+        self.cumulative_tail_angle = sum(self.angles[-self.ncaudalpoints:])
 
         if self.use_history:
             self.cumulative_tail_angle_buffer.update(self.cumulative_tail_angle)
-            self.caudal_tail_angle_buffer.update(self.cumulative_tail_angle_caudal)
-
 
         if np.std(self.angles) > curvature_threshold:
             self.swimming = True
         else:
             self.swimming = False
             self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
-            self.adaptive_offset_buffer_caudal.update(self.caudal_tail_angle_buffer)
 
-        velocity, theta = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t)
+        velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, adaptive_offset=self.adaptive_offset)
         
         if softclamp:
             velocity = self.soft_clamp(velocity, maxv)
             theta = self.soft_clamp(theta, maxh)
         
-        return tailpoints, pointsonarc, velocity, theta
+        return tailpoints, pointsonarc, velocity, theta, offset

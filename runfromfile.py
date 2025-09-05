@@ -121,7 +121,7 @@ if logdata:
     datafile = open(logfile, 'w', encoding='utf-8',  newline='')
     logger = csv.writer(datafile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
     logger.writerow(['framecount', 'velocity', 'heading', 'gain_v', 'gain_h', 'threshold_v', 'threshold_h', 
-                     'cumulative tail angle', 'curvature threshold', 'swimming', *tail_points_header])    
+                     'cumulative tail angle', 'curvature threshold', 'swimming', 'offset', *tail_points_header])    
 
 if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
@@ -163,8 +163,8 @@ while True:
         if blur:
             frame = cv2.stackBlur(frame,ksize=blur_kernel)
 
-        tail, arc, vel, th = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, curvature_threshold=curvature_threshold, 
-                                                softclamp=clamptomax, maxv=maxv, maxh=maxh)
+        tail, arc, vel, th, offs = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, curvature_threshold=curvature_threshold, 
+                                                      softclamp=clamptomax, maxv=maxv, maxh=maxh)
 
         velocity_buffer.update(vel)
         theta_buffer.update(th)
@@ -214,7 +214,7 @@ while True:
 
         if logdata:
             logger.writerow([framecount, velocity, theta, gainv, gainh, threshold_v, threshold_h, 
-                             tracker.cumulative_tail_angle, curvature_threshold, tracker.swimming, *tail])
+                             tracker.cumulative_tail_angle, curvature_threshold, tracker.swimming, offs, *tail])
 
         if liveview.end:
             break
