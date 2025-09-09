@@ -25,6 +25,7 @@ class TailTracker():
         self.use_history = False
         if buffer_frames_tracking is not None:
             self.cumulative_tail_angle_buffer = FifoBuffer(buffer_frames_tracking)
+            self.swim_state_buffer = FifoBuffer(buffer_frames_tracking*2) #consider having an input parameter for this
             self.adaptive_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
             self.use_history = True
 
@@ -198,8 +199,15 @@ class TailTracker():
 
         if self.use_history:
             self.cumulative_tail_angle_buffer.update(self.cumulative_tail_angle)
+            self.swim_state_buffer.update(self.cumulative_tail_angle)
 
-        if np.std(self.angles) > curvature_threshold:
+        # if np.std(self.angles) > curvature_threshold:
+        #     self.swimming = True
+        # else:
+        #     self.swimming = False
+        #     self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
+
+        if max(np.abs(np.diff(self.swim_state_buffer.buffer))) > curvature_threshold:
             self.swimming = True
         else:
             self.swimming = False

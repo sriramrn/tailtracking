@@ -174,7 +174,7 @@ while True:
         theta = theta_buffer.buffer[-1]
 
         if broadcast_udp:
-            message = struct.pack('>ddi', velocity, theta, framecount)
+            message = struct.pack('>dd?i', velocity, theta, tracker.swimming, framecount)
             udp_socket.sendto(message, (udp_ip, udp_port))
 
         liveview.velocity = velocity_buffer.buffer
