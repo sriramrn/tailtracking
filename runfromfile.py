@@ -132,7 +132,7 @@ liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, window
 
 tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, theta_range=theta_range,
                       dtheta=dtheta, illumination=illumination, ncaudalpoints=n_caudal_points, buffer_frames_tracking=estimator_frames,
-                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset)
+                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset, softclamp=clamptomax, maxv=maxv, maxh=maxh)
 
 framecount = 0
 velocity = 0
@@ -163,8 +163,7 @@ while True:
         if blur:
             frame = cv2.stackBlur(frame,ksize=blur_kernel)
 
-        tail, arc, vel, th, offs = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, curvature_threshold=curvature_threshold, 
-                                                      softclamp=clamptomax, maxv=maxv, maxh=maxh)
+        tail, arc, vel, th, offs = tracker.track_tail(estimator=estimator, gain_v=gainv, gain_t=gainh, curvature_threshold=curvature_threshold)
 
         velocity_buffer.update(vel)
         theta_buffer.update(th)

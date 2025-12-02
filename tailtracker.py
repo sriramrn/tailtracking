@@ -1,11 +1,13 @@
 import numpy as np
+import math
 import cv2
 from ringbuffer import FifoBuffer
 
 class TailTracker():
 
     def __init__(self, start_point, nsteps, step_size, theta_range, dtheta, illumination='darkfield', ncaudalpoints=4, 
-                 buffer_frames_tracking=None, buffer_frames_adaptive_offset=None, adaptive_offset = False):
+                 buffer_frames_tracking=None, buffer_frames_adaptive_offset=None, adaptive_offset = False, 
+                 softclamp=False, maxv=None, maxh=None):
         
         self.image = None
         self.start_point = start_point
@@ -15,6 +17,9 @@ class TailTracker():
         self.dtheta = dtheta
         self.illumination = illumination
         self.thetas = np.arange(self.theta_range[0], self.theta_range[1], self.dtheta)
+        self.softclamp = softclamp
+        self.maxv = maxv
+        self.maxh = maxh
 
         self.smoothen_intensity_profile = True
         self.smoothing_window = len(self.thetas) // 3
@@ -40,6 +45,52 @@ class TailTracker():
             signal = np.convolve(signal,w,'same')
         
         return signal
+    
+
+    def logistic_weight(self, x, x_min, x_max, midpoint, steepness=10.0, zero_at="max"):
+        
+        """
+        Logistic-based weight mapping with a shiftable midpoint.
+
+        Maps x in [x_min, x_max] to a smooth weight in [0, 1] using a logistic curve.
+
+        Parameters:
+            x (float)         : Input value.
+            x_min (float)     : Low end of input range.
+            x_max (float)     : High end of input range.
+            midpoint (float)  : Input value where weight = 0.5.
+                                Must be within [x_min, x_max].
+            steepness (float) : Controls curve sharpness.
+                                Higher → sharper transition.
+            zero_at (str)     : Which end should map to ~0?
+                                - "min": weight≈0 at x_min → increasing
+                                - "max": weight≈0 at x_max → decreasing (default)
+
+        Returns:
+            float: Weight in [0, 1].
+        """
+
+        # Prevent zero range
+        if x_max == x_min:
+            return 1.0
+
+        # Normalize x → [0,1]
+        t = (x - x_min) / (x_max - x_min)
+        t = max(0.0, min(1.0, t))
+
+        # Normalize midpoint to same scale
+        m = (midpoint - x_min) / (x_max - x_min)
+        m = max(0.0, min(1.0, m))
+
+        # Logistic curve centered at the (normalized) midpoint
+        w = 1.0 / (1.0 + math.exp(-steepness * (t - m)))
+
+        # Reverse if requested
+        if zero_at == "max":
+            w = 1.0 - w
+
+        return w
+
        
 
     def soft_clamp(self, signal, max_value, softness=0.):
@@ -161,7 +212,19 @@ class TailTracker():
                     pos = [0]
                 if len(neg) == 0:
                     neg = [0]
-                velocity = 2 * min([np.sum(pos),np.sum(neg)])
+
+                if self.softclamp:
+                    sumpos = np.sum(pos)
+                    sumneg = np.sum(neg)
+                    weight = self.logistic_weight(np.abs(theta*gain_t), 0, self.maxh, midpoint=15, steepness=20.0, zero_at="max")
+                    if sumpos < sumneg:
+                        velocity = sumpos + weight * sumneg
+                    elif sumneg < sumpos:
+                        velocity = sumneg + weight * sumpos
+                    elif sumpos == sumneg:
+                        velocity = sumpos + sumneg
+                else:
+                    velocity = 2 * min([np.sum(pos),np.sum(neg)])
 
             else:                
                 angles_abs = np.abs(self.angles[-self.ncaudalpoints:])
@@ -174,7 +237,7 @@ class TailTracker():
         return velocity*gain_v, theta*gain_t, offset
     
 
-    def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., curvature_threshold=0.15, softclamp=False, maxv=None, maxh=None):
+    def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., curvature_threshold=0.15):
 
         tailpoints = [np.array(self.start_point)]
         prev_point = self.start_point
@@ -215,8 +278,8 @@ class TailTracker():
 
         velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, adaptive_offset=self.adaptive_offset)
         
-        if softclamp:
-            velocity = self.soft_clamp(velocity, maxv)
-            theta = self.soft_clamp(theta, maxh)
+        if self.softclamp:
+            velocity = self.soft_clamp(velocity, self.maxv)
+            theta = self.soft_clamp(theta, self.maxh)
         
         return tailpoints, pointsonarc, velocity, theta, offset
