@@ -70,6 +70,7 @@ estimator_history = config.getfloat('params', 'estimator_history') # history in 
 n_caudal_points = config.getint('params', 'n_caudal_points') # number of caudal tail points (from the end of tail) to use for velocity estimation
 adaptive_offset = config.get('params', 'adaptive_offset')    # correct for tail position changes over time
 adaptive_offset_history = config.getfloat('params', 'adaptive_offset_history')  # history in seconds taken from the buffer for adaptive offset calculation
+exclude_swims_from_offset = config.getboolean('params', 'exclude_swims_from_offset') # whether to use tail segment angles when swimming to estimate the offset. if True, only non-swimming frames are used to estimate offset
 curvature_threshold = config.getfloat('params', 'curvature_threshold')          # standard deviations in radians for the tail segment angles to classify if swimming
 broadcast_udp = config.getboolean('params', 'broadcast_udp') # broadcast UDP message to Panda3D. Same address and port must be used by the listener            
 udp_ip = config.get('params','udp_ip')

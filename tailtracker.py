@@ -1,5 +1,5 @@
 import numpy as np
-import math
+import statistics
 import cv2
 from ringbuffer import FifoBuffer
 
@@ -7,7 +7,7 @@ class TailTracker():
 
     def __init__(self, start_point, nsteps, step_size, theta_range, dtheta, illumination='darkfield', ncaudalpoints=4, 
                  buffer_frames_tracking=None, buffer_frames_adaptive_offset=None, adaptive_offset = False, 
-                 softclamp=False, maxv=None, maxh=None):
+                 exclude_swims_from_offset=True, softclamp=False, maxv=None, maxh=None):
         
         self.image = None
         self.start_point = start_point
@@ -27,6 +27,7 @@ class TailTracker():
         self.ncaudalpoints = ncaudalpoints
 
         self.adaptive_offset = adaptive_offset
+        self.exclude_swims_from_offset = exclude_swims_from_offset
         self.use_history = False
         if buffer_frames_tracking is not None:
             self.cumulative_tail_angle_buffer = FifoBuffer(buffer_frames_tracking)
@@ -45,52 +46,6 @@ class TailTracker():
             signal = np.convolve(signal,w,'same')
         
         return signal
-    
-
-    def logistic_weight(self, x, x_min, x_max, midpoint, steepness=10.0, zero_at="max"):
-        
-        """
-        Logistic-based weight mapping with a shiftable midpoint.
-
-        Maps x in [x_min, x_max] to a smooth weight in [0, 1] using a logistic curve.
-
-        Parameters:
-            x (float)         : Input value.
-            x_min (float)     : Low end of input range.
-            x_max (float)     : High end of input range.
-            midpoint (float)  : Input value where weight = 0.5.
-                                Must be within [x_min, x_max].
-            steepness (float) : Controls curve sharpness.
-                                Higher → sharper transition.
-            zero_at (str)     : Which end should map to ~0?
-                                - "min": weight≈0 at x_min → increasing
-                                - "max": weight≈0 at x_max → decreasing (default)
-
-        Returns:
-            float: Weight in [0, 1].
-        """
-
-        # Prevent zero range
-        if x_max == x_min:
-            return 1.0
-
-        # Normalize x → [0,1]
-        t = (x - x_min) / (x_max - x_min)
-        t = max(0.0, min(1.0, t))
-
-        # Normalize midpoint to same scale
-        m = (midpoint - x_min) / (x_max - x_min)
-        m = max(0.0, min(1.0, m))
-
-        # Logistic curve centered at the (normalized) midpoint
-        w = 1.0 / (1.0 + math.exp(-steepness * (t - m)))
-
-        # Reverse if requested
-        if zero_at == "max":
-            w = 1.0 - w
-
-        return w
-
        
 
     def soft_clamp(self, signal, max_value, softness=0.):
@@ -200,11 +155,11 @@ class TailTracker():
                 estimator_history = self.cumulative_tail_angle_buffer.buffer
 
                 if adaptive_offset:
-                    offset = np.median(self.adaptive_offset_buffer.buffer)                    
+                    offset = statistics.median(self.adaptive_offset_buffer.buffer)                    
                     estimator_history = estimator_history - offset
 
                 estimator_history = np.array(estimator_history)
-                theta = np.sum(estimator_history)
+                theta = sum(estimator_history)
 
                 pos = np.abs(estimator_history[estimator_history>=0])
                 neg = np.abs(estimator_history[estimator_history<0])
@@ -212,19 +167,7 @@ class TailTracker():
                     pos = [0]
                 if len(neg) == 0:
                     neg = [0]
-
-                if self.softclamp:
-                    sumpos = np.sum(pos)
-                    sumneg = np.sum(neg)
-                    weight = self.logistic_weight(np.abs(theta*gain_t), 0, self.maxh, midpoint=15, steepness=20.0, zero_at="max")
-                    if sumpos < sumneg:
-                        velocity = sumpos + weight * sumneg
-                    elif sumneg < sumpos:
-                        velocity = sumneg + weight * sumpos
-                    elif sumpos == sumneg:
-                        velocity = sumpos + sumneg
-                else:
-                    velocity = 2 * min([np.sum(pos),np.sum(neg)])
+                velocity = 2 * min([sum(pos),sum(neg)])
 
             else:                
                 angles_abs = np.abs(self.angles[-self.ncaudalpoints:])
@@ -274,8 +217,13 @@ class TailTracker():
             self.swimming = True
         else:
             self.swimming = False
-            self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
-
+            
+        if self.exclude_swims_from_offset:
+            if not self.swimming:
+                self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
+        else:
+            self.adaptive_offset_buffer.update(statistics.median(self.angles))
+        
         velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, adaptive_offset=self.adaptive_offset)
         
         if self.softclamp:
