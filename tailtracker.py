@@ -217,12 +217,11 @@ class TailTracker():
             self.swimming = True
         else:
             self.swimming = False
-            
-        if self.exclude_swims_from_offset:
-            if not self.swimming:
-                self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
-        else:
-            self.adaptive_offset_buffer.update(statistics.median(self.angles))
+
+        if not self.swimming and self.exclude_swims_from_offset:
+            self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
+        elif not self.exclude_swims_from_offset:
+            self.adaptive_offset_buffer.update(self.cumulative_tail_angle)            
         
         velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, adaptive_offset=self.adaptive_offset)
         

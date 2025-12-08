@@ -178,7 +178,8 @@ liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, window
 
 tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, theta_range=theta_range,
                       dtheta=dtheta, illumination=illumination, ncaudalpoints=n_caudal_points, buffer_frames_tracking=estimator_frames,
-                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset, softclamp=clamptomax, maxv=maxv, maxh=maxh)
+                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset,
+                      exclude_swims_from_offset=exclude_swims_from_offset, softclamp=clamptomax, maxv=maxv, maxh=maxh)
 
 counter = 0
 velocity = 0
