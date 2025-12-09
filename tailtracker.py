@@ -29,10 +29,12 @@ class TailTracker():
         self.adaptive_offset = adaptive_offset
         self.exclude_swims_from_offset = exclude_swims_from_offset
         self.use_history = False
+        self.adaptive_midline_offset = True # experimental feature for adaptive midline for velocity estimation
         if buffer_frames_tracking is not None:
             self.cumulative_tail_angle_buffer = FifoBuffer(buffer_frames_tracking)
             self.swim_state_buffer = FifoBuffer(buffer_frames_tracking*2) #consider having an input parameter for this
             self.adaptive_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
+            self.midline_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
             self.use_history = True
 
 
@@ -153,16 +155,23 @@ class TailTracker():
             if self.use_history:
 
                 estimator_history = self.cumulative_tail_angle_buffer.buffer
-
+                estimator_history_for_vel = self.cumulative_tail_angle_buffer.buffer
                 if adaptive_offset:
-                    offset = statistics.median(self.adaptive_offset_buffer.buffer)                    
+                    offset = statistics.median(self.adaptive_offset_buffer.buffer)
                     estimator_history = estimator_history - offset
+
+                    if self.adaptive_midline_offset:
+                        offset_v = statistics.median(self.midline_offset_buffer.buffer)
+                        estimator_history_for_vel = estimator_history_for_vel - offset_v                
+                    else:
+                        estimator_history_for_vel = estimator_history
 
                 estimator_history = np.array(estimator_history)
                 theta = sum(estimator_history)
 
-                pos = np.abs(estimator_history[estimator_history>=0])
-                neg = np.abs(estimator_history[estimator_history<0])
+                pos = np.abs(estimator_history_for_vel[estimator_history_for_vel>=0])
+                neg = np.abs(estimator_history_for_vel[estimator_history_for_vel<0])
+
                 if len(pos) == 0:
                     pos = [0]
                 if len(neg) == 0:
@@ -207,21 +216,24 @@ class TailTracker():
             self.cumulative_tail_angle_buffer.update(self.cumulative_tail_angle)
             self.swim_state_buffer.update(self.cumulative_tail_angle)
 
-        # if np.std(self.angles) > curvature_threshold:
-        #     self.swimming = True
-        # else:
-        #     self.swimming = False
-        #     self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
+            # if np.std(self.angles) > curvature_threshold:
+            #     self.swimming = True
+            # else:
+            #     self.swimming = False
+            #     self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
 
-        if max(np.abs(np.diff(self.swim_state_buffer.buffer))) > curvature_threshold:
-            self.swimming = True
-        else:
-            self.swimming = False
+            if max(np.abs(np.diff(self.swim_state_buffer.buffer))) > curvature_threshold:
+                self.swimming = True
+            else:
+                self.swimming = False
 
-        if not self.swimming and self.exclude_swims_from_offset:
-            self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
-        elif not self.exclude_swims_from_offset:
-            self.adaptive_offset_buffer.update(self.cumulative_tail_angle)            
+            if not self.swimming and self.exclude_swims_from_offset:
+                self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
+            elif not self.exclude_swims_from_offset:
+                self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
+
+            self.midline_offset_buffer.update(statistics.mean(self.angles[0:2])*self.ncaudalpoints) # experimental feature (option 1)           
+            # self.midline_offset_buffer.update(statistics.median(self.angles[-self.ncaudalpoints:])*self.ncaudalpoints) # experimental feature (option 2)           
         
         velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, adaptive_offset=self.adaptive_offset)
         
