@@ -20,10 +20,11 @@ root.update()
 INPUT PARAMETERS
 """
 
-videosource = 'sample_videos/test_vid_from_exp_short.mp4'#'sample_videos/test_vid_large.mp4' # path to video file
+videosource = None#'sample_videos/test_vid_from_exp_short.mp4'#'sample_videos/test_vid_large.mp4' # path to video file
 savepath = 'log/' # path to save video and log file
 savevideo = True # grayscale video without tracking overlay is saved
 logdata = True
+playback_from = 0.0  # seconds to start playback from
 
 illumination = 'darkfield'      # darkfield or brightfield tail illumination
 taildirection = 2               # direction the tail is facing. display will be rotated accordingly for tracking 1, 2, 3 or 4. 
@@ -73,6 +74,13 @@ maxfps = 150       # fps to set when clampfps is true, the displayed fps value w
 INPUT PARAMETERS END HERE
 """
 
+if videosource is None:
+    videosource = filedialog.askopenfilename(initialdir='.', title='Select video file', filetypes=[('MP4 files', '*.mp4'), ('AVI files', '*.avi'), ('All files', '*.*')])
+    if len(videosource) == 0:
+        print("No video file selected, exiting")
+        exit()
+
+
 if savevideo or logdata:
 
     videofile = filedialog.asksaveasfilename(initialdir=savepath, initialfile='_tracking', title='Save video as', defaultextension='.mp4', filetypes=[('MP4 files', '*.mp4')])
@@ -89,6 +97,8 @@ cap = cv2.VideoCapture(videosource)
 framerate = cap.get(cv2.CAP_PROP_FPS)
 width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
 height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+startframe = int(framerate*playback_from - 1)
+cap.set(cv2.CAP_PROP_POS_FRAMES, startframe)
 
 def get_start_point(framesize, offset):
     start_point = [offset[0], int(framesize[1]/2 + offset[1])]
