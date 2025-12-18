@@ -50,6 +50,8 @@ threshold_v = config.getfloat('params', 'threshold_v')  # threshold to detect fo
 threshold_h = config.getfloat('params', 'threshold_h')  # threshold to detect turns from the scaled estimate
 maxv = config.getfloat('params', 'maxv')                # maximum value allowed for forward velocity
 maxh = config.getfloat('params', 'maxh')                # maximum value allowed for heading change (convert)
+logistic_filter_midpoint = config.getfloat('params', 'logistic_filter_midpoint')  # midpoint of the logistic weight function for inhibiting velocity based on heading
+logistic_filter_steepness = config.getfloat('params', 'logistic_filter_steepness')  # steepness of the logistic weight function for inhibiting velocity based on heading
 clamptomax = config.getboolean('params', 'clamptomax')  # clamp velocity and heading to maxv and maxh, respectively.
 tail_tracking_nsteps = config.getint('params', 'tail_tracking_nsteps')  # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = config.getint('params', 'tail_tracking_step_size')    # step size between successive tail tracking points
@@ -178,8 +180,8 @@ liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, window
 
 tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, theta_range=theta_range,
                       dtheta=dtheta, illumination=illumination, ncaudalpoints=n_caudal_points, buffer_frames_tracking=estimator_frames,
-                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset,
-                      exclude_swims_from_offset=exclude_swims_from_offset, softclamp=clamptomax, maxv=maxv, maxh=maxh)
+                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset, softclamp=clamptomax,
+                      maxv=maxv, maxh=maxh, logistic_filter_midpoint=logistic_filter_midpoint, logistic_filter_steepness=logistic_filter_steepness)
 
 counter = 0
 velocity = 0

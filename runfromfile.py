@@ -34,6 +34,8 @@ threshold_v = 0.0001            # threshold to detect forward swims from the sca
 threshold_h = 0.0001            # threshold to detect turns from the scaled estimate
 maxv = 0.30                     # maximum value allowed for forward velocity
 maxh = 90.                      # maximum value allowed for heading change (convert)
+logistic_filter_midpoint = 15.  # midpoint of the logistic weight function for inhibiting velocity based on heading
+logistic_filter_steepness = 20. # steepness of the logistic weight function for inhibiting velocity based on heading
 clamptomax = True               # clamp velocity and heading to maxv and maxh, respectively.
 tail_tracking_nsteps = 7        # number of points to track, excluding the stationary start point at the base of the tail
 tail_tracking_step_size = 35    # step size between successive tail tracking points
@@ -54,7 +56,6 @@ estimator = 'cumulative_tail_angle' # estimator to use for velocity and heading 
 n_caudal_points = 4             # number of caudal tail points (from the end of tail) to use for velocity estimation
 adaptive_offset = True          # correct for tail position changes over time
 adaptive_offset_history = 1.    # history in seconds taken from the buffer for adaptive offset calculation
-exclude_swims_from_offset = True # whether to use tail segment angles when swimming to estimate the offset. if True, only non-swimming frames are used to estimate offset
 curvature_threshold = 0.15      # standard deviations in radians for the tail segment angles to classify if swimming
 
 broadcast_udp = True            # broadcast UDP message to Panda3D. Same address and port must be used by the listener            
@@ -143,8 +144,8 @@ liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, window
 
 tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, theta_range=theta_range,
                       dtheta=dtheta, illumination=illumination, ncaudalpoints=n_caudal_points, buffer_frames_tracking=estimator_frames,
-                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset, 
-                      exclude_swims_from_offset=exclude_swims_from_offset, softclamp=clamptomax, maxv=maxv, maxh=maxh)
+                      buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset, softclamp=clamptomax, 
+                      maxv=maxv, maxh=maxh, logistic_filter_midpoint=logistic_filter_midpoint, logistic_filter_steepness=logistic_filter_steepness)
 
 framecount = 0
 velocity = 0
