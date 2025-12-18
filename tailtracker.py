@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import statistics
 import cv2
 from ringbuffer import FifoBuffer
@@ -7,7 +8,7 @@ class TailTracker():
 
     def __init__(self, start_point, nsteps, step_size, theta_range, dtheta, illumination='darkfield', ncaudalpoints=4, 
                  buffer_frames_tracking=None, buffer_frames_adaptive_offset=None, adaptive_offset = False, 
-                 exclude_swims_from_offset=True, softclamp=False, maxv=None, maxh=None):
+                 softclamp=False, maxv=None, maxh=None, logistic_filter_midpoint=None, logistic_filter_steepness=None):
         
         self.image = None
         self.start_point = start_point
@@ -20,6 +21,8 @@ class TailTracker():
         self.softclamp = softclamp
         self.maxv = maxv
         self.maxh = maxh
+        self.logistic_filter_midpoint = logistic_filter_midpoint
+        self.logistic_filter_steepness = logistic_filter_steepness
 
         self.smoothen_intensity_profile = True
         self.smoothing_window = len(self.thetas) // 3
@@ -27,14 +30,12 @@ class TailTracker():
         self.ncaudalpoints = ncaudalpoints
 
         self.adaptive_offset = adaptive_offset
-        self.exclude_swims_from_offset = exclude_swims_from_offset
         self.use_history = False
-        self.adaptive_midline_offset = True # experimental feature for adaptive midline for velocity estimation
         if buffer_frames_tracking is not None:
             self.cumulative_tail_angle_buffer = FifoBuffer(buffer_frames_tracking)
             self.swim_state_buffer = FifoBuffer(buffer_frames_tracking*2) #consider having an input parameter for this
             self.adaptive_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
-            self.midline_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
+            self.swim_agnostic_adaptive_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
             self.use_history = True
 
 
@@ -70,6 +71,51 @@ class TailTracker():
         softness = 1. + softness
         
         return max_value * np.tanh(signal / (max_value * softness))
+    
+
+    def logistic_weight(self, x, x_min, x_max, midpoint, steepness, zero_at="max"):
+        
+        """
+        Logistic-based weight mapping with a shiftable midpoint.
+
+        Maps x in [x_min, x_max] to a smooth weight in [0, 1] using a logistic curve.
+
+        Parameters:
+            x (float)         : Input value.
+            x_min (float)     : Low end of input range.
+            x_max (float)     : High end of input range.
+            midpoint (float)  : Input value where weight = 0.5.
+                                Must be within [x_min, x_max].
+            steepness (float) : Controls curve sharpness.
+                                Higher → sharper transition.
+            zero_at (str)     : Which end should map to ~0?
+                                - "min": weight≈0 at x_min → increasing
+                                - "max": weight≈0 at x_max → decreasing (default)
+
+        Returns:
+            float: Weight in [0, 1].
+        """
+
+        # Prevent zero range
+        if x_max == x_min:
+            return 1.0
+
+        # Normalize x → [0,1]
+        t = (x - x_min) / (x_max - x_min)
+        t = max(0.0, min(1.0, t))
+        
+        # Normalize midpoint to same scale
+        m = (midpoint - x_min) / (x_max - x_min)
+        m = max(0.0, min(1.0, m))
+
+        # Logistic curve centered at the (normalized) midpoint
+        w = 1.0 / (1.0 + math.exp(-steepness * (t - m)))
+
+        # Reverse if requested
+        if zero_at == "max":
+            w = 1.0 - w
+
+        return w
 
 
     def rotate_bound(self, angle):
@@ -154,39 +200,31 @@ class TailTracker():
 
             if self.use_history:
 
-                estimator_history = self.cumulative_tail_angle_buffer.buffer
-                estimator_history_for_vel = self.cumulative_tail_angle_buffer.buffer
-                if adaptive_offset:
+                if not adaptive_offset:
+                    estimator_history = self.cumulative_tail_angle_buffer.buffer
+                    estimator_history_v = self.cumulative_tail_angle_buffer.buffer
+
+                else:
                     offset = statistics.median(self.adaptive_offset_buffer.buffer)
-                    estimator_history = estimator_history - offset
+                    offset_v = statistics.median(self.swim_agnostic_adaptive_offset_buffer.buffer)
+                    estimator_history = self.cumulative_tail_angle_buffer.buffer - offset
+                    estimator_history_v = self.cumulative_tail_angle_buffer.buffer - offset_v
 
-                    if self.adaptive_midline_offset:
-                        offset_v = statistics.median(self.midline_offset_buffer.buffer)
-                        estimator_history_for_vel = estimator_history_for_vel - offset_v                
-                    else:
-                        estimator_history_for_vel = estimator_history
+                theta = sum(estimator_history) * gain_t
+                velocity = sum(np.abs(estimator_history_v)) * gain_v
 
-                estimator_history = np.array(estimator_history)
-                theta = sum(estimator_history)
-
-                pos = np.abs(estimator_history_for_vel[estimator_history_for_vel>=0])
-                neg = np.abs(estimator_history_for_vel[estimator_history_for_vel<0])
-
-                if len(pos) == 0:
-                    pos = [0]
-                if len(neg) == 0:
-                    neg = [0]
-                velocity = 2 * min([sum(pos),sum(neg)])
+                velocity = velocity * self.logistic_weight(np.abs(theta), 0., self.maxh, midpoint=self.logistic_filter_midpoint, 
+                                                           steepness=self.logistic_filter_steepness, zero_at="max")
 
             else:                
                 angles_abs = np.abs(self.angles[-self.ncaudalpoints:])
                 maxangle_abs = np.max(angles_abs)
                 meanangle_abs = np.mean(angles_abs)
 
-                velocity = meanangle_abs
-                theta = self.cumulative_tail_angle
+                velocity = meanangle_abs * gain_v
+                theta = self.cumulative_tail_angle * gain_t
 
-        return velocity*gain_v, theta*gain_t, offset
+        return velocity, theta, offset
     
 
     def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., curvature_threshold=0.15):
@@ -227,14 +265,11 @@ class TailTracker():
             else:
                 self.swimming = False
 
-            if not self.swimming and self.exclude_swims_from_offset:
-                self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
-            elif not self.exclude_swims_from_offset:
+            if not self.swimming:
                 self.adaptive_offset_buffer.update(self.cumulative_tail_angle)
 
-            self.midline_offset_buffer.update(statistics.mean(self.angles[0:2])*self.ncaudalpoints) # experimental feature (option 1)           
-            # self.midline_offset_buffer.update(statistics.median(self.angles[-self.ncaudalpoints:])*self.ncaudalpoints) # experimental feature (option 2)           
-        
+            self.swim_agnostic_adaptive_offset_buffer.update(self.cumulative_tail_angle)
+
         velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, adaptive_offset=self.adaptive_offset)
         
         if self.softclamp:
