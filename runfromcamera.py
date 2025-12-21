@@ -178,7 +178,7 @@ liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, window
                          thresh_v=threshold_v, thresh_h=threshold_h, plotfps=plot_fps, start_point_offset=start_point_offset, 
                          angle_offset=angle_offset, pointstoplot=frames_to_plot)
 
-tracker = TailTracker(start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, theta_range=theta_range,
+tracker = TailTracker(framerate=framerate, start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, theta_range=theta_range,
                       dtheta=dtheta, illumination=illumination, ncaudalpoints=n_caudal_points, buffer_frames_tracking=estimator_frames,
                       buffer_frames_adaptive_offset=adaptive_offset_frames, adaptive_offset=adaptive_offset, softclamp=clamptomax,
                       maxv=maxv, maxh=maxh, logistic_filter_midpoint=logistic_filter_midpoint, logistic_filter_steepness=logistic_filter_steepness)

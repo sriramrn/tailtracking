@@ -3,13 +3,15 @@ import math
 import statistics
 import cv2
 from ringbuffer import FifoBuffer
+from filters import AsymmetricLowpass
 
 class TailTracker():
 
-    def __init__(self, start_point, nsteps, step_size, theta_range, dtheta, illumination='darkfield', ncaudalpoints=4, 
-                 buffer_frames_tracking=None, buffer_frames_adaptive_offset=None, adaptive_offset = False, 
+    def __init__(self, framerate, start_point, nsteps, step_size, theta_range, dtheta, illumination='darkfield', 
+                 ncaudalpoints=4, buffer_frames_tracking=None, buffer_frames_adaptive_offset=None, adaptive_offset = False, 
                  softclamp=False, maxv=None, maxh=None, logistic_filter_midpoint=None, logistic_filter_steepness=None):
         
+        self.dt = 1.0 / framerate
         self.image = None
         self.start_point = start_point
         self.nsteps = nsteps
@@ -33,10 +35,16 @@ class TailTracker():
         self.use_history = False
         if buffer_frames_tracking is not None:
             self.cumulative_tail_angle_buffer = FifoBuffer(buffer_frames_tracking)
-            self.swim_state_buffer = FifoBuffer(buffer_frames_tracking*2) #consider having an input parameter for this
+            self.swim_state_buffer = FifoBuffer(int(1.5/self.dt)) #consider having an input parameter for this
             self.adaptive_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
             self.swim_agnostic_adaptive_offset_buffer = FifoBuffer(buffer_frames_adaptive_offset)
             self.use_history = True
+
+        self.velocity = 0.
+        self.theta = 0.
+        # Slow release filter prevents large peaks in velocity due to swing back of the tail after a sharp turn
+        self.theta_filter_slow_release = AsymmetricLowpass(dt=self.dt, tau_rise=0.001, tau_fall=.5, y0=self.theta)  
+        self.theta_filtered = 0.
 
 
     def smoothen(self, signal, window, iterations=2):
@@ -192,8 +200,8 @@ class TailTracker():
 
     def estimator(self, type='cumulative_tail_angle', gain_v=1., gain_t=1., adaptive_offset=False):
         
-        velocity = 0
-        theta = 0
+        self.velocity = 0
+        self.theta = 0
         offset = None
 
         if type == 'cumulative_tail_angle':
@@ -210,21 +218,22 @@ class TailTracker():
                     estimator_history = self.cumulative_tail_angle_buffer.buffer - offset
                     estimator_history_v = self.cumulative_tail_angle_buffer.buffer - offset_v
 
-                theta = sum(estimator_history) * gain_t
-                velocity = sum(np.abs(estimator_history_v)) * gain_v
+                self.theta = sum(estimator_history) * gain_t
+                self.velocity = sum(np.abs(estimator_history_v)) * gain_v
 
-                velocity = velocity * self.logistic_weight(np.abs(theta), 0., self.maxh, midpoint=self.logistic_filter_midpoint, 
-                                                           steepness=self.logistic_filter_steepness, zero_at="max")
+                self.theta_filtered = self.theta_filter_slow_release.update(np.abs(self.theta))
+                self.velocity = self.velocity * self.logistic_weight(self.theta_filtered, 0., self.maxh, midpoint=self.logistic_filter_midpoint, 
+                                                                     steepness=self.logistic_filter_steepness, zero_at="max")
 
             else:                
                 angles_abs = np.abs(self.angles[-self.ncaudalpoints:])
                 maxangle_abs = np.max(angles_abs)
                 meanangle_abs = np.mean(angles_abs)
 
-                velocity = meanangle_abs * gain_v
-                theta = self.cumulative_tail_angle * gain_t
+                self.velocity = meanangle_abs * gain_v
+                self.theta = self.cumulative_tail_angle * gain_t
 
-        return velocity, theta, offset
+        return offset
     
 
     def track_tail(self, estimator='cumulative_tail_angle', gain_v=1., gain_t=1., curvature_threshold=0.15):
@@ -270,10 +279,10 @@ class TailTracker():
 
             self.swim_agnostic_adaptive_offset_buffer.update(self.cumulative_tail_angle)
 
-        velocity, theta, offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, adaptive_offset=self.adaptive_offset)
+        offset = self.estimator(type=estimator, gain_v=gain_v, gain_t=gain_t, adaptive_offset=self.adaptive_offset)
         
         if self.softclamp:
-            velocity = self.soft_clamp(velocity, self.maxv)
-            theta = self.soft_clamp(theta, self.maxh)
+            self.velocity = self.soft_clamp(self.velocity, self.maxv)
+            self.theta = self.soft_clamp(self.theta, self.maxh)
         
-        return tailpoints, pointsonarc, velocity, theta, offset
+        return tailpoints, pointsonarc, self.velocity, self.theta, offset
