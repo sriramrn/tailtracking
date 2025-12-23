@@ -43,7 +43,7 @@ class TailTracker():
         self.velocity = 0.
         self.theta = 0.
         # Slow release filter prevents large peaks in velocity due to swing back of the tail after a sharp turn
-        self.theta_filter_slow_release = AsymmetricLowpass(dt=self.dt, tau_rise=0.001, tau_fall=.5, y0=self.theta)  
+        self.theta_filter_slow_release = AsymmetricLowpass(dt=self.dt, tau_rise=0.001, tau_fall=.25, y0=self.theta)  
         self.theta_filtered = 0.
 
 
@@ -219,7 +219,16 @@ class TailTracker():
                     estimator_history_v = self.cumulative_tail_angle_buffer.buffer - offset_v
 
                 self.theta = sum(estimator_history) * gain_t
-                self.velocity = sum(np.abs(estimator_history_v)) * gain_v
+                
+                pos = np.abs(estimator_history_v[estimator_history_v>=0])
+                neg = np.abs(estimator_history_v[estimator_history_v<0])
+
+                if len(pos) == 0:
+                    pos = [0]
+                if len(neg) == 0:
+                    neg = [0]
+
+                self.velocity = 2 * min([sum(pos),sum(neg)]) * gain_v
 
                 self.theta_filtered = self.theta_filter_slow_release.update(np.abs(self.theta))
                 self.velocity = self.velocity * self.logistic_weight(self.theta_filtered, 0., self.maxh, midpoint=self.logistic_filter_midpoint, 

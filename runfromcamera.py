@@ -175,7 +175,7 @@ if broadcast_udp:
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket
 
 liveview = TailTrackView(framesize=framesize, windowsize=gui_window_size, windowposition=gui_window_position, gainv=gainv, gainh=gainh,
-                         thresh_v=threshold_v, thresh_h=threshold_h, plotfps=plot_fps, start_point_offset=start_point_offset, 
+                         thresh_v=threshold_v, thresh_h=threshold_h, thresh_s=curvature_threshold, plotfps=plot_fps, start_point_offset=start_point_offset, 
                          angle_offset=angle_offset, pointstoplot=frames_to_plot)
 
 tracker = TailTracker(framerate=framerate, start_point=start_point, nsteps=tail_tracking_nsteps, step_size=tail_tracking_step_size, theta_range=theta_range,
