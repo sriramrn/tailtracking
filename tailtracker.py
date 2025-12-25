@@ -43,7 +43,7 @@ class TailTracker():
         self.velocity = 0.
         self.theta = 0.
         # Slow release filter prevents large peaks in velocity due to swing back of the tail after a sharp turn
-        self.theta_filter_slow_release = AsymmetricLowpass(dt=self.dt, tau_rise=0.001, tau_fall=.25, y0=self.theta)  
+        self.theta_filter_slow_release = AsymmetricLowpass(dt=self.dt, tau_rise=0.001, tau_fall=.2, y0=self.theta)  
         self.theta_filtered = 0.
 
 
