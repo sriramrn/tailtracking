@@ -8,6 +8,10 @@ Input is a video stream of the tail of the fish or an example movie. Ouput consi
 
 <img src="./TT_GUI.png" width="50%">
 
+## System requirements
+PC
+python
+
 ## Installation instructions
 .yml file
 
