@@ -19,7 +19,7 @@ python
 .yml file
 
 ## User manual
-The tail tracking GUI can either be runfromcamera.py or from runfromfile.py with an example video (example can be found [here](sample_videos)). This allows the user to test the entire VR system without using a live fish.  
+The tail-tracking GUI can either be runfromcamera.py with live video from a fish or runfromfile.py with an example video (example can be found [here](sample_videos)). The latter allows the user to test the entire VR system without using a live fish.  
 
 Input parameters such as camera type, illumination, tracking settings and save paths are hard coded or can be read from a .ini file (for the runfromvideo.py).  
 Running either script will show a GUI with position controls for the ROI of the live video stream, sliders with tracking parameters, and two output graphs with the velocity and heading gain. The sliders allow the user to update some tracking parameters live. The resulting tracking is also plotted on top of the video stream of the fish. The video file, log file and UDP broadcast are continuously updated. ROI and tracking configurations can be saved to use again later.
