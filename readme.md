@@ -20,12 +20,11 @@ python
 ## User manual
 The tail tracking GUI can either be ran from the camera feed or from from a video file (example can be found here). This allows the user to test the entire VR system without using a live fish.  
 
-Input parameters such as camera type, illumination, tracking settings and save paths are hard coded or can be read from a .ini file (for the runfromvideo.py). 
-Running either script will show a GUI with position controls for the ROI of the live video stream, sliders with tracking parameters, and two output graphs with the velocity and heading gain. The sliders allow the user to update some tracking parameters live. The resulting tracking is also plotted on top of the video stream of the fish.
-
+Input parameters such as camera type, illumination, tracking settings and save paths are hard coded or can be read from a .ini file (for the runfromvideo.py).  
+Running either script will show a GUI with position controls for the ROI of the live video stream, sliders with tracking parameters, and two output graphs with the velocity and heading gain. The sliders allow the user to update some tracking parameters live. The resulting tracking is also plotted on top of the video stream of the fish. The video file, log file and UDP broadcasted are continuously updated. ROI and tracking configurations can be saved to use again later.
 
 ### Tracking
-
+The tracking assumes that the fish is positioned in the ROI such that just the tail is visible and the fish is under the red line in neutral* position. The straight red line serves as the starting point from which a user selectable amount of (light blue) arcs and distances between the arcs are positioned. From the most anterior arc, the peak of the intensity profile along that arc is searched, and indicated with a yellow dot. The position of the dot will position of the second most anterior arc, to make sure that the image of the fish falls on the arc.
 
 ## Hardware
 
