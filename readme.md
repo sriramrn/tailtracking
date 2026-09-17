@@ -5,7 +5,7 @@ If you use use this code for your publication, please cite us.
 
 ### Overview
 This software package was designed to track the tail of a headfixed adult zebrafish (*Danio rerio*) in tandem with the virtual reality (VR) package [LINK].
-Input is a video stream of the tail of the fish or an example movie. Ouput consists i.a. of velocity, heading, velocity gain, heading gain, velocity threshold, heading threshold, cumulative tail angle and curvature threshold. This output can be plugged into the VR script to allow for a closed looped VR environment.
+Input is a video stream of the tail of the fish or an example movie. Ouput consists i.a. of velocity, heading, velocity gain, heading gain, velocity threshold, heading threshold, cumulative tail angle and curvature threshold. This output can be send to the VR script via EDP into the VR script to allow for a closed looped VR environment.
 
 <img src="./TT_GUI.png" width="50%">
 
@@ -17,7 +17,6 @@ python
 .yml file
 
 ## User manual
-link to short user manual
 
 docstring thing
 <br>
