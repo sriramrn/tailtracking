@@ -1,6 +1,7 @@
 # Tail-tracking software for headfixed (zebra) fish 
 
-This software package is linked to the publication 'supercoolfish VR behavior' [LINK]
+This software package is linked to the publication 'supercoolfish VR behavior' [LINK]. 
+If you use use this code for your publication, please cite us.
 
 ### Overview
 This software package was designed to track the tail of a headfixed adult zebrafish (*Danio rerio*) in tandem with the virtual reality (VR) package [LINK].
