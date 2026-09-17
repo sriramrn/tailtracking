@@ -4,7 +4,7 @@ This software package is linked to the publication 'supercoolfish VR behavior' [
 If you use use this code for your publication, please cite us.
 
 ### Overview
-This software package was designed to track the tail of a headfixed adult zebrafish (*Danio rerio*) to live update the virtual reality (VR) [script](https://github.com/sriramrn/fishvr).  
+This software package was designed to track the tail of a headfixed adult zebrafish (*Danio rerio*) to live update a virtual reality (VR) projection [script](https://github.com/sriramrn/fishvr).  
 Input is a video stream of the tail of the fish or an example movie.  
 Ouput consists of a UDP broadcast (with the velocity, tail angle, swimming T/F and a counter), a video file, and a log file with i.a. of velocity, heading, velocity gain, heading gain, velocity threshold, heading threshold, cumulative tail angle and curvature threshold. The VR script can use the UDP broadcast information to create a closed looped VR environment.
 
