@@ -36,8 +36,5 @@ A bandpass filter centered around 810nm was used to ensure that only the reflect
 
 In our case, we set the exposure time to XXX at 120 fps, which the tail of the fish imaged at approximately 80um/pixel.  
 
-## License
-check with FMI
-
 ## Authors
 Alex Javier, Sriram Narayanan, Jan Eckhardt, Jaap van Krugten, Rainer Friedrich
