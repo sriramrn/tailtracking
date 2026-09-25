@@ -3,28 +3,46 @@
 This software package is linked to the publication 'supercoolfish VR behavior' [LINK].  
 If you use use this code for your publication, please cite us.
 
-### Overview
-This software package was designed to track the tail of a headfixed adult zebrafish (*Danio rerio*) to live update a virtual reality (VR) projection [script](https://github.com/sriramrn/fishvr).  
+## Overview
+This software package was designed to track the tail of a head-fixed adult zebrafish (*Danio rerio*) to live update a virtual reality (VR) projection [script](https://github.com/sriramrn/fishvr).  
 
-Input is a video stream of the tail of the fish or an example movie.  
-Ouput consists of a UDP broadcast (with the velocity, tail angle, swimming T/F and a hardware framecounter readout), a video file, and a log file with i.a. of velocity, heading, velocity gain, heading gain, velocity threshold, heading threshold, cumulative tail angle and curvature threshold. The VR script can use the UDP broadcast information to create a closed looped VR environment.
+Input is a video stream of the tail of the fish or an example movie. Ouput consists of a UDP broadcast (with the velocity, tail angle, swimming T/F and a hardware frame counter readout), a video file, and a log file with i.a. of velocity, heading, velocity gain, heading gain, velocity threshold, heading threshold, cumulative tail angle and curvature threshold. The VR script can use the UDP broadcast information to create a closed looped VR environment.
 
 <img src="./TT_GUI.png" width="50%">
 
 ## System requirements
-PC
-python
+- A computer with a graphics card supporting multiple displays as needed
+- Drivers and python wrapper for Ximea or Alvium camera installed as per the instructions on the manufacturers webpage
+- The software has been extensively tested on Windows 10 and 11 and is expected to also run across OS platforms that support the specific requirements of the python environment
 
 ## Installation instructions
-.yml file
+Create a python environment with the dependencies listed in the environment.yml file. This file includes dependencies needed for both the VR and the tail tracking workflows.
 
 ## User manual
-The tail-tracking GUI can either be runfromcamera.py with live video from a fish or runfromfile.py with an example video (example can be found [here](sample_videos)). The latter allows the user to test the entire VR system without using a live fish.  
+The tail-tracking GUI can be instantiated either by running runfromcamera.py (live camera feed) or runfromfile.py (video file such as the example found [here](sample_videos)). The runfromile.py script allows the user to test and troubleshoot the entire VR system conveniently.  
 
-Input parameters such as camera type, illumination, tracking settings and save paths are entered manually (runfromfile.py) or can be read from a .ini file (for the runfromvideo.py).  
-Running either script will show a GUI with position controls for the ROI of the live video stream, sliders with tracking parameters, and two output graphs with the estimated velocity and heading. The sliders allow the user to update some tracking parameters live. The resulting tracking is also plotted on top of the video stream of the fish. An output video file, log file and UDP broadcast are continuously updated. ROI and tracking configurations can be saved to use again later.
+Input parameters such as camera type, illumination, tracking settings and save paths are entered in the corresponding fields in code (runfromfile.py) or can be read from a .ini file (runfromvideo.py). Running either script will show a GUI with position controls for the ROI of the live video stream, sliders with tracking parameters, and two output graphs with the estimated velocity and heading updated in real time. The sliders allow the user to update some tracking parameters live. The resulting tracking is overlaid on the video stream of the fish. An output video file, log file and UDP broadcast are continuously updated. The ROI and tracking configurations can be saved to use again later.  
 
-### Tracking
+## GUI controls
+| Button | Function |
+|-----------|-------|
+| end | Closes the GUI. Log files will not be terminated correctly if the session is ended by other methods |
+| move | Toggles the ROI positioning mode ON or OFF |
+| up, down, left, right | These buttons move the ROI in either of the four directions relative to the current position |
+| save | Saves the current parameters to a .ini settings file which can be used to initialize subsequent sessions |
+
+| Slider | Function |
+|-----------|-------|
+| gain_v | Gain multiplier to scale estimated velocity |
+| gain_h | Gain multiplier to scale estimated change in heading |
+| thresh_v | Threshold below which the velocity is clamped to zero |
+| thresh_h | Threshold absolute change in heading below which the value is set to zero |
+| x_tail | x-coordinate of the first tracking point |
+| y_tail | y-coordinate of the first tracking point |
+| angle | Use to set the angle of the tail at the neutral position to be along the horizontal image dimension |
+| thresh_s | Threshold rate of change of cumulative tail angle used to detect when the fish is swimming |
+
+## Tracking
 The tracking assumes that the fish is within the ROI and the tail is positioned along the user defined midline when at rest in the neutral position. A preselected point placed on the midline at the base of the tail serves as the starting point for tracking. The next point is placed on the peak of the filtered intensity profile of the cross section of the tail at a fixed distance from the current point. This step is repeated for a predetermined number of points along the length of the tail at uniform spacing between them. Recent history is used to adaptively update the orientation of the tail at the resting position, which is used as the baseline to determine the direction of intended swims for updating the VR.
 
 ## Hardware
