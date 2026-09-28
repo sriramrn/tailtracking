@@ -42,6 +42,24 @@ Input parameters such as camera type, illumination, tracking settings and save p
 | angle | Use to set the angle of the tail at the neutral position to be along the horizontal image dimension |
 | thresh_s | Threshold rate of change of cumulative tail angle used to detect when the fish is swimming |
 
+## Output log
+The columns in the frame-by-frame output log file saved in .csv format are organized as described in the table below:
+| Column name | Description |
+|-----------|-------|
+| framecount | Video frame count from the onset of the tracking session |
+| velocity | Estimated forward velocity (m/s) |
+| heading | Estimated heading change (degrees per second) |
+| gain_v | Gain multiplier used to scale velocity |
+| gain_h | Gain multiplier used to scale heading |
+| threshold_v | Threshold value below which velocity will be zero |
+| threshold_h | Threshold heading below which heading will be zero |
+| cumulative tail angle | Cumulative tail segment angle  |
+| curvature_threshold | Threshold rate of change of curvature to detect whether fish is swimming or not |
+| swimming | Is the fish swimming? |
+| offset | Offset (may be adaptive if option is selected in the configuration) corresponding to the orientation of the tail at rest |
+| pt_{n} | Tracking points along the tail (X,Y). Each column after this corresponds to subsequent tracking points with {n} representing the position along the tail |
+
+
 ## Tracking
 The tracking assumes that the fish is within the ROI and the tail is positioned along the user defined midline when at rest in the neutral position. A preselected point placed on the midline at the base of the tail serves as the starting point for tracking. The next point is placed on the peak of the filtered intensity profile of the cross section of the tail at a fixed distance from the current point. This step is repeated for a predetermined number of points along the length of the tail at uniform spacing between them. Recent history is used to adaptively update the orientation of the tail at the resting position, which is used as the baseline to determine the direction of intended swims for updating the VR.
 
